@@ -54,14 +54,21 @@ applyTheme(getTheme());
 
 // ── Sidebar Toggle (mobile) ──
 
-sidebarToggle.addEventListener('click', () => {
-  sidebar.classList.toggle('open');
-});
+const sidebarBackdrop = document.createElement('div');
+sidebarBackdrop.className = 'sidebar-backdrop';
+document.body.appendChild(sidebarBackdrop);
+
+function toggleSidebar(open) {
+  const isOpen = open !== undefined ? open : !sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', isOpen);
+  sidebarBackdrop.classList.toggle('visible', isOpen);
+}
+
+sidebarToggle.addEventListener('click', () => toggleSidebar());
+sidebarBackdrop.addEventListener('click', () => toggleSidebar(false));
 
 // Close sidebar when clicking content on mobile
-document.getElementById('content').addEventListener('click', () => {
-  sidebar.classList.remove('open');
-});
+document.getElementById('content').addEventListener('click', () => toggleSidebar(false));
 
 // ── File Tree ──
 
@@ -134,7 +141,7 @@ function renderTree(nodes, container, depth = 0) {
       item.addEventListener('click', (e) => {
         e.preventDefault();
         navigateTo(node.path);
-        sidebar.classList.remove('open');
+        toggleSidebar(false);
       });
 
       container.appendChild(item);
@@ -166,7 +173,8 @@ async function navigateTo(filePath, pushState = true) {
 }
 
 async function loadFile(filePath) {
-  contentInner.innerHTML = '<div class="loading"></div>';
+  contentInner.innerHTML = '<div class="loading-skeleton">' +
+    '<div class="skeleton-line"></div>'.repeat(6) + '</div>';
 
   if (isImageFile(filePath)) {
     const src = '/raw/' + filePath.split('/').map(encodeURIComponent).join('/');
@@ -524,7 +532,7 @@ function renderSearchResults(data) {
     header.addEventListener('click', () => {
       navigateTo(file.path);
       clearSearch();
-      sidebar.classList.remove('open');
+      toggleSidebar(false);
     });
     group.appendChild(header);
 
@@ -535,7 +543,7 @@ function renderSearchResults(data) {
       row.addEventListener('click', () => {
         navigateTo(file.path);
         clearSearch();
-        sidebar.classList.remove('open');
+        toggleSidebar(false);
       });
       group.appendChild(row);
     }

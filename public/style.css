@@ -83,7 +83,7 @@
 /* ── Base ── */
 html, body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   font-size: 15px;
   line-height: 1.6;
   color: var(--text);
@@ -93,10 +93,16 @@ html, body {
 }
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
 
 /* ── Layout ── */
 #app {
@@ -229,7 +235,7 @@ html, body {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -260,7 +266,7 @@ html, body {
 .search-line-num {
   flex-shrink: 0;
   color: var(--text-muted);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
   font-size: 11px;
   min-width: 24px;
   text-align: right;
@@ -270,7 +276,7 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
 }
 
 .search-line-text mark {
@@ -298,14 +304,15 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px 4px calc(12px + var(--depth, 0) * 16px);
+  padding: 5px 12px 5px calc(12px + var(--depth, 0) * 16px);
   cursor: pointer;
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.5;
   text-decoration: none;
-  border-radius: 0;
-  transition: background-color 0.1s ease;
+  border-radius: 6px;
+  margin: 1px 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
   user-select: none;
 }
 
@@ -317,7 +324,7 @@ html, body {
 .tree-item.active {
   background: var(--sidebar-active);
   color: var(--accent);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .tree-icon {
@@ -350,6 +357,7 @@ html, body {
 
 .tree-children {
   overflow: hidden;
+  transition: opacity 0.15s ease;
 }
 
 .tree-children.hidden {
@@ -368,7 +376,7 @@ html, body {
   align-items: center;
   gap: 8px;
   padding: 8px 48px;
-  max-width: 936px;
+  max-width: 780px;
   margin: 0 auto;
 }
 
@@ -421,7 +429,7 @@ html, body {
   width: 100%;
   min-height: calc(100vh - 200px);
   padding: 16px;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
   font-size: 13px;
   line-height: 1.5;
   color: var(--text);
@@ -444,10 +452,11 @@ html, body {
   flex: 1;
   overflow-y: auto;
   background: var(--bg);
+  transition: background-color 0.2s ease;
 }
 
 #content-inner {
-  max-width: 840px;
+  max-width: 780px;
   margin: 0 auto;
   padding: 40px 48px 80px;
 }
@@ -505,10 +514,12 @@ html, body {
 .markdown-body a {
   color: var(--accent);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .markdown-body a:hover {
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .markdown-body strong { font-weight: 600; }
@@ -523,10 +534,11 @@ html, body {
 }
 
 .markdown-body blockquote {
-  padding: 0 1em;
+  padding: 2px 1em;
   margin-bottom: 16px;
   color: var(--text-secondary);
-  border-left: 0.25em solid var(--border);
+  border-left: 3px solid var(--accent);
+  font-style: italic;
 }
 
 .markdown-body hr {
@@ -547,13 +559,13 @@ html, body {
 
 .markdown-body table th,
 .markdown-body table td {
-  padding: 6px 13px;
+  padding: 8px 12px;
   border: 1px solid var(--border);
 }
 
 .markdown-body table th {
   font-weight: 600;
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .markdown-body table tr:nth-child(2n) {
@@ -570,8 +582,9 @@ html, body {
   padding: 0.2em 0.4em;
   font-size: 85%;
   background: var(--code-bg);
+  border: 1px solid var(--border-light);
   border-radius: 4px;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
 }
 
 .markdown-body pre {
@@ -588,6 +601,7 @@ html, body {
 .markdown-body pre code {
   padding: 0;
   background: transparent;
+  border: none;
   font-size: 100%;
   border-radius: 0;
 }
@@ -631,9 +645,48 @@ pre.shiki {
 }
 
 /* ── Task Lists ── */
+.markdown-body .contains-task-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.markdown-body .task-list-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  list-style: none;
+}
+
 .markdown-body input[type="checkbox"] {
-  margin-right: 0.5em;
-  vertical-align: middle;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  top: 2px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.markdown-body input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.markdown-body input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 /* ── Frontmatter ── */
@@ -672,12 +725,13 @@ pre.shiki {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-bottom: 16px;
+  padding-bottom: 12px;
   margin-bottom: 24px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 12px;
   color: var(--text-muted);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  letter-spacing: 0.01em;
 }
 
 /* ── Sidebar Toggle (mobile) ── */
@@ -699,6 +753,22 @@ pre.shiki {
   box-shadow: var(--shadow);
 }
 
+/* ── Mobile sidebar backdrop ── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.sidebar-backdrop.visible {
+  display: block;
+  opacity: 1;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   #sidebar {
@@ -718,35 +788,45 @@ pre.shiki {
   }
 
   #content-inner {
-    padding: 24px 20px 60px;
+    padding: 24px 16px 60px;
   }
 
   #content-toolbar {
-    padding: 8px 20px;
+    padding: 8px 16px;
+  }
+
+  .markdown-body h1 { font-size: 1.6em; }
+  .markdown-body h2 { font-size: 1.3em; }
+
+  .markdown-body pre {
+    border-radius: 6px;
+    font-size: 12px;
   }
 }
 
-/* ── Loading ── */
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 200px;
-  color: var(--text-muted);
+/* ── Loading Skeleton ── */
+.loading-skeleton {
+  padding: 0;
 }
 
-.loading::after {
-  content: "";
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+.loading-skeleton .skeleton-line {
+  height: 14px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.loading-skeleton .skeleton-line:nth-child(1) { width: 35%; height: 24px; margin-bottom: 24px; }
+.loading-skeleton .skeleton-line:nth-child(2) { width: 100%; }
+.loading-skeleton .skeleton-line:nth-child(3) { width: 92%; }
+.loading-skeleton .skeleton-line:nth-child(4) { width: 85%; }
+.loading-skeleton .skeleton-line:nth-child(5) { width: 96%; }
+.loading-skeleton .skeleton-line:nth-child(6) { width: 70%; }
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
 }
 
 /* ── Connection status ── */
