@@ -11,6 +11,34 @@ import { startWatcher } from './watcher.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, '..', 'public');
 
+const MAX_FILE_SIZE = 1024 * 1024; // 1 MB
+
+const BINARY_EXTENSIONS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.bmp', '.tiff', '.tif',
+  '.mp3', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.webm', '.wav', '.ogg',
+  '.zip', '.tar', '.gz', '.bz2', '.7z', '.rar', '.xz',
+  '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.woff', '.woff2', '.ttf', '.otf', '.eot',
+  '.exe', '.dll', '.so', '.dylib', '.o', '.a',
+  '.class', '.pyc', '.pyo',
+  '.sqlite', '.db',
+]);
+
+const MIME_TYPES = {
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon', '.bmp': 'image/bmp', '.tiff': 'image/tiff',
+  '.pdf': 'application/pdf',
+  '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf',
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
+  '.mp4': 'video/mp4', '.webm': 'video/webm',
+  '.zip': 'application/zip', '.gz': 'application/gzip',
+  '.json': 'application/json', '.xml': 'application/xml',
+  '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
+  '.txt': 'text/plain', '.md': 'text/markdown',
+  '.yaml': 'text/yaml', '.yml': 'text/yaml',
+};
+
 /**
  * Validate that a requested path stays within the root directory.
  * Returns the resolved absolute path or null if invalid.
@@ -51,8 +79,25 @@ export async function startServer({ directory, port, host, respectIgnore }) {
       return c.json({ error: 'Invalid path' }, 403);
     }
 
-    if (!fs.existsSync(absPath) || !fs.statSync(absPath).isFile()) {
+    let stats;
+    try {
+      stats = fs.statSync(absPath);
+    } catch {
       return c.json({ error: 'File not found' }, 404);
+    }
+
+    if (!stats.isFile()) {
+      return c.json({ error: 'File not found' }, 404);
+    }
+
+    if (stats.size > MAX_FILE_SIZE) {
+      const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
+      return c.json({ type: 'notice', message: `File too large to preview (${sizeMB} MB, limit: 1 MB)` });
+    }
+
+    const ext = path.extname(absPath).toLowerCase();
+    if (BINARY_EXTENSIONS.has(ext)) {
+      return c.json({ type: 'notice', message: 'Binary file — cannot display' });
     }
 
     const content = fs.readFileSync(absPath, 'utf-8');
@@ -98,6 +143,34 @@ export async function startServer({ directory, port, host, respectIgnore }) {
     });
   });
 
+  // Raw file serving (images and other assets)
+  app.get('/raw/*', (c) => {
+    let reqPath;
+    try {
+      reqPath = decodeURIComponent(c.req.path.slice(5));
+    } catch {
+      return c.text('Bad request', 400);
+    }
+
+    const absPath = safePath(rootDir, reqPath);
+    if (!absPath) {
+      return c.text('Forbidden', 403);
+    }
+
+    if (!fs.existsSync(absPath) || !fs.statSync(absPath).isFile()) {
+      return c.text('Not found', 404);
+    }
+
+    const content = fs.readFileSync(absPath);
+    const ext = path.extname(absPath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+    return c.body(content, 200, {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=300',
+    });
+  });
+
   // SPA catch-all: serve index.html
   app.get('*', (c) => {
     const indexPath = path.join(publicDir, 'index.html');
@@ -110,6 +183,16 @@ export async function startServer({ directory, port, host, respectIgnore }) {
     fetch: app.fetch,
     port,
     hostname: host,
+  });
+
+  // Handle port-in-use errors
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\n  Error: Port ${port} is already in use.`);
+      console.error(`  Try: mdbrowse --port ${port + 1}\n`);
+      process.exit(1);
+    }
+    throw err;
   });
 
   // WebSocket server

@@ -1,3 +1,4 @@
+import path from 'path';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
@@ -101,6 +102,14 @@ export async function renderMarkdown(content, filePath) {
 
   // For now, leave math as-is — KaTeX CSS + auto-render will handle it client-side
   // The remark-math plugin wraps math in appropriate classes
+
+  // Rewrite relative image URLs to /raw/ paths
+  const fileDir = path.posix.dirname(filePath);
+  html = html.replace(/<img([^>]*?)src="([^"]*?)"([^>]*?)>/gi, (match, before, src, after) => {
+    if (/^(https?:\/\/|\/\/|data:)/.test(src)) return match;
+    const resolved = path.posix.normalize(path.posix.join(fileDir, src));
+    return `<img${before}src="/raw/${resolved}"${after}>`;
+  });
 
   // Extract title from frontmatter or first heading
   let title = frontmatter?.title;

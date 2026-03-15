@@ -9,6 +9,13 @@ const sidebar = document.getElementById('sidebar');
 let currentPath = null;
 let treeData = null;
 
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp']);
+
+function isImageFile(name) {
+  const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
 // ── Theme ──
 
 function getTheme() {
@@ -147,6 +154,12 @@ async function navigateTo(filePath, pushState = true) {
 async function loadFile(filePath) {
   contentInner.innerHTML = '<div class="loading"></div>';
 
+  if (isImageFile(filePath)) {
+    const src = '/raw/' + filePath.split('/').map(encodeURIComponent).join('/');
+    renderFile(filePath, { type: 'image', src });
+    return;
+  }
+
   try {
     const res = await fetch('/api/file?path=' + encodeURIComponent(filePath));
     if (!res.ok) {
@@ -163,7 +176,14 @@ async function loadFile(filePath) {
 function renderFile(filePath, data) {
   const pathHeader = `<div class="file-path-header">${escapeHtml(filePath)}</div>`;
 
-  if (data.type === 'markdown') {
+  if (data.type === 'image') {
+    document.title = `${filePath} — mdbrowse`;
+    const name = filePath.split('/').pop();
+    contentInner.innerHTML = pathHeader + `<div class="image-preview"><img src="${data.src}" alt="${escapeHtml(name)}"></div>`;
+  } else if (data.type === 'notice') {
+    document.title = `${filePath} — mdbrowse`;
+    contentInner.innerHTML = pathHeader + `<div class="file-notice">${escapeHtml(data.message)}</div>`;
+  } else if (data.type === 'markdown') {
     document.title = `${data.title || filePath} — mdbrowse`;
     contentInner.innerHTML = pathHeader + `<div class="markdown-body">${data.html}</div>`;
   } else {
