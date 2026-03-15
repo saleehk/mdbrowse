@@ -10,6 +10,7 @@ let currentPath = null;
 let treeData = null;
 let isReadOnly = true;
 let editMode = false;
+let dirty = false;
 
 const editBtn = document.getElementById('edit-btn');
 const saveBtn = document.getElementById('save-btn');
@@ -366,9 +367,36 @@ async function enterEditMode() {
     const rawText = await res.text();
     const pathHeader = `<div class="file-path-header">${escapeHtml(currentPath)}</div>`;
     contentInner.innerHTML = pathHeader + '<textarea id="editor"></textarea>';
-    document.getElementById('editor').value = rawText;
+    const editor = document.getElementById('editor');
+    editor.value = rawText;
+    dirty = false;
+    saveBtn.classList.remove('unsaved');
+    autoResizeTextarea(editor);
+    editor.addEventListener('input', () => {
+      dirty = true;
+      saveBtn.classList.add('unsaved');
+      autoResizeTextarea(editor);
+    });
+    editor.addEventListener('keydown', handleTabKey);
   } catch {
     exitEditMode();
+  }
+}
+
+function autoResizeTextarea(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+function handleTabKey(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const textarea = e.target;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    textarea.value = textarea.value.substring(0, start) + '  ' + textarea.value.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + 2;
+    textarea.dispatchEvent(new Event('input'));
   }
 }
 
@@ -394,6 +422,8 @@ async function saveFile() {
       return;
     }
 
+    dirty = false;
+    saveBtn.classList.remove('unsaved');
     editMode = false;
     hideAllToolbarButtons();
     await loadFile(currentPath);
@@ -412,6 +442,8 @@ async function saveFile() {
 }
 
 async function exitEditMode() {
+  dirty = false;
+  saveBtn.classList.remove('unsaved');
   editMode = false;
   hideAllToolbarButtons();
   if (currentPath) {
@@ -423,6 +455,19 @@ async function exitEditMode() {
 editBtn.addEventListener('click', enterEditMode);
 saveBtn.addEventListener('click', saveFile);
 cancelEditBtn.addEventListener('click', exitEditMode);
+
+// Ctrl+S / Cmd+S to save
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if (editMode) saveFile();
+  }
+});
+
+// Unsaved changes warning
+window.addEventListener('beforeunload', (e) => {
+  if (dirty) e.preventDefault();
+});
 
 // ── Init ──
 

@@ -279,6 +279,18 @@ html, body {
   color: var(--accent);
 }
 
+#save-btn.unsaved {
+  background: #e3790c;
+  border-color: #e3790c;
+  color: #fff;
+}
+
+#save-btn.unsaved:hover {
+  background: #c96a0a;
+  border-color: #c96a0a;
+  color: #fff;
+}
+
 /* ── Editor Textarea ── */
 #editor {
   display: block;
@@ -292,7 +304,8 @@ html, body {
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
   tab-size: 2;
   outline: none;
   transition: border-color 0.15s ease;
