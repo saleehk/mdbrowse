@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Hono } from 'hono';
+import { basicAuth } from 'hono/basic-auth';
 import { serve } from '@hono/node-server';
 import { WebSocketServer } from 'ws';
 import { scanDirectory } from './scanner.js';
@@ -51,7 +52,7 @@ function safePath(rootDir, requestedPath) {
   return resolved;
 }
 
-export async function startServer({ directory, port, host, respectIgnore }) {
+export async function startServer({ directory, port, host, respectIgnore, auth, readOnly }) {
   const rootDir = path.resolve(directory);
 
   if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) {
@@ -60,6 +61,10 @@ export async function startServer({ directory, port, host, respectIgnore }) {
   }
 
   const app = new Hono();
+
+  if (auth) {
+    app.use('*', basicAuth({ username: auth.username, password: auth.password }));
+  }
 
   // API: file tree
   app.get('/api/tree', (c) => {
@@ -110,6 +115,36 @@ export async function startServer({ directory, port, host, respectIgnore }) {
       const result = await renderCode(content, filePath);
       return c.json({ type: 'code', ...result });
     }
+  });
+
+  // API: save file
+  app.post('/api/file', async (c) => {
+    if (readOnly) {
+      return c.json({ error: 'Read-only mode' }, 403);
+    }
+
+    const filePath = c.req.query('path');
+    if (!filePath) {
+      return c.json({ error: 'Missing path parameter' }, 400);
+    }
+
+    const absPath = safePath(rootDir, filePath);
+    if (!absPath) {
+      return c.json({ error: 'Invalid path' }, 403);
+    }
+
+    try {
+      const stats = fs.statSync(absPath);
+      if (!stats.isFile()) {
+        return c.json({ error: 'File not found' }, 404);
+      }
+    } catch {
+      return c.json({ error: 'File not found' }, 404);
+    }
+
+    const body = await c.req.text();
+    await fs.promises.writeFile(absPath, body, 'utf-8');
+    return c.json({ ok: true });
   });
 
   // Static assets from public/
