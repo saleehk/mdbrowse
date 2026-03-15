@@ -8,6 +8,7 @@ import { WebSocketServer } from 'ws';
 import { scanDirectory } from './scanner.js';
 import { renderMarkdown, renderCode } from './renderer.js';
 import { startWatcher } from './watcher.js';
+import { search } from './search.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, '..', 'public');
@@ -145,6 +146,16 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     const body = await c.req.text();
     await fs.promises.writeFile(absPath, body, 'utf-8');
     return c.json({ ok: true });
+  });
+
+  // API: search
+  app.get('/api/search', async (c) => {
+    const q = c.req.query('q');
+    if (!q) {
+      return c.json({ results: [], query: '', totalFiles: 0 });
+    }
+    const results = await search(rootDir, q, respectIgnore);
+    return c.json(results);
   });
 
   // Static assets from public/

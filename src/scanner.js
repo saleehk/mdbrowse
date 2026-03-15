@@ -5,7 +5,7 @@ import ignore from 'ignore';
 /**
  * Build ignore filter by reading .gitignore files up the tree.
  */
-function buildIgnoreFilter(dirPath, rootDir) {
+export function buildIgnoreFilter(dirPath, rootDir) {
   const ig = ignore();
   // Always skip these
   ig.add(['node_modules', '.git']);
