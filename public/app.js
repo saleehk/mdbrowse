@@ -6,11 +6,16 @@ const themeToggle = document.getElementById('theme-toggle');
 const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebar = document.getElementById('sidebar');
 
+const searchInput = document.getElementById('search-input');
+const searchClear = document.getElementById('search-clear');
+
 let currentPath = null;
 let treeData = null;
 let isReadOnly = true;
 let editMode = false;
 let dirty = false;
+let searchDebounceTimer = null;
+let searchResultsEl = null;
 
 const editBtn = document.getElementById('edit-btn');
 const saveBtn = document.getElementById('save-btn');
@@ -467,6 +472,114 @@ document.addEventListener('keydown', (e) => {
 // Unsaved changes warning
 window.addEventListener('beforeunload', (e) => {
   if (dirty) e.preventDefault();
+});
+
+// ── Search ──
+
+function clearSearch() {
+  searchInput.value = '';
+  searchClear.style.display = 'none';
+  if (searchResultsEl) {
+    searchResultsEl.remove();
+    searchResultsEl = null;
+  }
+  fileTreeEl.style.display = '';
+}
+
+function highlightMatch(text, query) {
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const parts = [];
+  let lastIndex = 0;
+  let idx;
+  while ((idx = lowerText.indexOf(lowerQuery, lastIndex)) !== -1) {
+    if (idx > lastIndex) parts.push(escapeHtml(text.slice(lastIndex, idx)));
+    parts.push('<mark>' + escapeHtml(text.slice(idx, idx + query.length)) + '</mark>');
+    lastIndex = idx + query.length;
+  }
+  if (lastIndex < text.length) parts.push(escapeHtml(text.slice(lastIndex)));
+  return parts.join('');
+}
+
+function renderSearchResults(data) {
+  if (searchResultsEl) searchResultsEl.remove();
+  fileTreeEl.style.display = 'none';
+
+  searchResultsEl = document.createElement('div');
+  searchResultsEl.className = 'search-results';
+
+  if (data.results.length === 0) {
+    searchResultsEl.innerHTML = `<div class="search-empty">No results for '${escapeHtml(data.query)}'</div>`;
+    sidebar.appendChild(searchResultsEl);
+    return;
+  }
+
+  for (const file of data.results) {
+    const group = document.createElement('div');
+    group.className = 'search-file-group';
+
+    const header = document.createElement('div');
+    header.className = 'search-file-header';
+    header.innerHTML = `<span class="tree-icon">${fileIcon(file.name)}</span> ${escapeHtml(file.path)}`;
+    header.addEventListener('click', () => {
+      navigateTo(file.path);
+      clearSearch();
+      sidebar.classList.remove('open');
+    });
+    group.appendChild(header);
+
+    for (const match of file.matches) {
+      const row = document.createElement('div');
+      row.className = 'search-match';
+      row.innerHTML = `<span class="search-line-num">${match.lineNumber}</span><span class="search-line-text">${highlightMatch(match.line, data.query)}</span>`;
+      row.addEventListener('click', () => {
+        navigateTo(file.path);
+        clearSearch();
+        sidebar.classList.remove('open');
+      });
+      group.appendChild(row);
+    }
+
+    searchResultsEl.appendChild(group);
+  }
+
+  sidebar.appendChild(searchResultsEl);
+}
+
+searchInput.addEventListener('input', () => {
+  const query = searchInput.value.trim();
+  searchClear.style.display = query ? '' : 'none';
+  clearTimeout(searchDebounceTimer);
+
+  if (!query) {
+    clearSearch();
+    return;
+  }
+
+  searchDebounceTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/search?q=' + encodeURIComponent(query));
+      const data = await res.json();
+      // Only render if input hasn't changed
+      if (searchInput.value.trim() === query) {
+        renderSearchResults(data);
+      }
+    } catch { /* ignore */ }
+  }, 300);
+});
+
+searchClear.addEventListener('click', () => {
+  clearSearch();
+  searchInput.focus();
+});
+
+// Ctrl+K / Cmd+K to focus search
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  }
 });
 
 // ── Init ──
