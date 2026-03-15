@@ -148,6 +148,38 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     return c.json({ ok: true });
   });
 
+  // API: raw file content (for edit mode)
+  app.get('/api/raw-content', (c) => {
+    const filePath = c.req.query('path');
+    if (!filePath) {
+      return c.text('Missing path parameter', 400);
+    }
+
+    const absPath = safePath(rootDir, filePath);
+    if (!absPath) {
+      return c.text('Invalid path', 403);
+    }
+
+    let stats;
+    try {
+      stats = fs.statSync(absPath);
+    } catch {
+      return c.text('File not found', 404);
+    }
+
+    if (!stats.isFile()) {
+      return c.text('File not found', 404);
+    }
+
+    const content = fs.readFileSync(absPath, 'utf-8');
+    return c.text(content);
+  });
+
+  // API: config
+  app.get('/api/config', (c) => {
+    return c.json({ readOnly: !!readOnly });
+  });
+
   // API: search
   app.get('/api/search', async (c) => {
     const q = c.req.query('q');

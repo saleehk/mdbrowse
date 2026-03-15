@@ -8,6 +8,12 @@ const sidebar = document.getElementById('sidebar');
 
 let currentPath = null;
 let treeData = null;
+let isReadOnly = true;
+let editMode = false;
+
+const editBtn = document.getElementById('edit-btn');
+const saveBtn = document.getElementById('save-btn');
+const cancelEditBtn = document.getElementById('cancel-edit-btn');
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp']);
 
@@ -146,6 +152,8 @@ async function navigateTo(filePath, pushState = true) {
   if (pushState) {
     history.pushState({ path: filePath }, '', '/view/' + filePath);
   }
+  editMode = false;
+  hideAllToolbarButtons();
   currentPath = filePath;
   highlightActive(filePath);
   await loadFile(filePath);
@@ -194,6 +202,9 @@ function renderFile(filePath, data) {
   // Initialize mermaid diagrams
   initMermaid();
 
+  // Show edit button if applicable
+  showEditButton();
+
   // Scroll to top
   document.getElementById('content').scrollTop = 0;
 }
@@ -241,6 +252,8 @@ window.addEventListener('popstate', (e) => {
 
 function showWelcome() {
   document.title = 'mdbrowse';
+  hideAllToolbarButtons();
+  editMode = false;
   contentInner.innerHTML = `
     <div id="welcome">
       <h1>mdbrowse</h1>
@@ -305,9 +318,124 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// ── Edit Mode ──
+
+function isEditableFile(filePath) {
+  if (!filePath) return false;
+  if (isImageFile(filePath)) return false;
+  const ext = filePath.includes('.') ? filePath.split('.').pop().toLowerCase() : '';
+  const binaryExts = new Set([
+    'png', 'jpg', 'jpeg', 'gif', 'webp', 'ico', 'bmp', 'tiff', 'tif',
+    'mp3', 'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm', 'wav', 'ogg',
+    'zip', 'tar', 'gz', 'bz2', '7z', 'rar', 'xz',
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'woff', 'woff2', 'ttf', 'otf', 'eot',
+    'exe', 'dll', 'so', 'dylib', 'o', 'a',
+    'class', 'pyc', 'pyo', 'sqlite', 'db',
+  ]);
+  return !binaryExts.has(ext);
+}
+
+function showEditButton() {
+  if (!isReadOnly && currentPath && isEditableFile(currentPath) && !editMode) {
+    editBtn.style.display = '';
+  } else {
+    editBtn.style.display = 'none';
+  }
+}
+
+function hideAllToolbarButtons() {
+  editBtn.style.display = 'none';
+  saveBtn.style.display = 'none';
+  cancelEditBtn.style.display = 'none';
+}
+
+async function enterEditMode() {
+  if (!currentPath) return;
+  editMode = true;
+  editBtn.style.display = 'none';
+  saveBtn.style.display = '';
+  cancelEditBtn.style.display = '';
+
+  try {
+    const res = await fetch('/api/raw-content?path=' + encodeURIComponent(currentPath));
+    if (!res.ok) {
+      exitEditMode();
+      return;
+    }
+    const rawText = await res.text();
+    const pathHeader = `<div class="file-path-header">${escapeHtml(currentPath)}</div>`;
+    contentInner.innerHTML = pathHeader + '<textarea id="editor"></textarea>';
+    document.getElementById('editor').value = rawText;
+  } catch {
+    exitEditMode();
+  }
+}
+
+async function saveFile() {
+  const editor = document.getElementById('editor');
+  if (!editor || !currentPath) return;
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = '⏳ Saving…';
+
+  try {
+    const res = await fetch('/api/file?path=' + encodeURIComponent(currentPath), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: editor.value,
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert('Save failed: ' + (data.error || res.statusText));
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 Save';
+      return;
+    }
+
+    editMode = false;
+    hideAllToolbarButtons();
+    await loadFile(currentPath);
+    showEditButton();
+
+    // Brief success indicator
+    const status = getOrCreateStatus();
+    status.textContent = 'Saved';
+    status.className = 'ws-status connected visible';
+    setTimeout(() => status.classList.remove('visible'), 1500);
+  } catch (err) {
+    alert('Save failed: ' + err.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = '💾 Save';
+  }
+}
+
+async function exitEditMode() {
+  editMode = false;
+  hideAllToolbarButtons();
+  if (currentPath) {
+    await loadFile(currentPath);
+    showEditButton();
+  }
+}
+
+editBtn.addEventListener('click', enterEditMode);
+saveBtn.addEventListener('click', saveFile);
+cancelEditBtn.addEventListener('click', exitEditMode);
+
 // ── Init ──
 
 async function init() {
+  // Fetch config to determine read-only status
+  try {
+    const res = await fetch('/api/config');
+    const config = await res.json();
+    isReadOnly = config.readOnly;
+  } catch {
+    isReadOnly = true;
+  }
+
   await fetchTree();
 
   // Check if URL has a /view/ path

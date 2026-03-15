@@ -238,6 +238,70 @@ html, body {
   white-space: nowrap;
 }
 
+/* ── Content Toolbar ── */
+#content-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 48px;
+  max-width: 936px;
+  margin: 0 auto;
+}
+
+#content-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+#content-toolbar button:hover {
+  background: var(--bg-tertiary);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+#content-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#save-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Editor Textarea ── */
+#editor {
+  display: block;
+  width: 100%;
+  min-height: calc(100vh - 200px);
+  padding: 16px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+  tab-size: 2;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+#editor:focus {
+  border-color: var(--accent);
+}
+
 /* ── Main Content ── */
 #content {
   flex: 1;
@@ -518,6 +582,10 @@ pre.shiki {
 
   #content-inner {
     padding: 24px 20px 60px;
+  }
+
+  #content-toolbar {
+    padding: 8px 20px;
   }
 }
 
