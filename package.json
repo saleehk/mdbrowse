@@ -1,0 +1,40 @@
+{
+  "name": "mdbrowse",
+  "version": "0.1.0",
+  "description": "CLI tool to browse and preview markdown files in any directory",
+  "type": "module",
+  "bin": {
+    "mdbrowse": "bin/mdbrowse.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "public/"
+  ],
+  "keywords": [
+    "markdown",
+    "browser",
+    "preview",
+    "cli",
+    "file-browser",
+    "live-reload"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^4.7.0",
+    "@hono/node-server": "^1.14.0",
+    "commander": "^13.1.0",
+    "chokidar": "^4.0.0",
+    "ws": "^8.18.0",
+    "unified": "^11.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-html": "^16.0.0",
+    "remark-math": "^6.0.0",
+    "rehype-katex": "^7.0.0",
+    "rehype-stringify": "^10.0.0",
+    "shiki": "^3.0.0",
+    "gray-matter": "^4.0.0",
+    "ignore": "^7.0.0"
+  }
+}
