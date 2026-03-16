@@ -6,7 +6,7 @@
 **Depends on:** 5.2
 
 ## What ships
-Published on npm — `npx mdbrowse .` works from anywhere with no prior install.
+Published on npm — `npx mdbrowse-cli .` works from anywhere with no prior install.
 
 ## Tasks
 - [ ] Verify `package.json` fields: name, version, description, keywords, license, repository, bin, files
@@ -15,7 +15,7 @@ Published on npm — `npx mdbrowse .` works from anywhere with no prior install.
 - [ ] Add `LICENSE` file (MIT)
 - [ ] Create GitHub repo and push code
 - [ ] Run `npm publish`
-- [ ] Test `npx mdbrowse .` from a clean directory (no local install)
+- [ ] Test `npx mdbrowse-cli .` from a clean directory (no local install)
 
 ## Implementation notes
 - **package.json `files`:** should include `bin/`, `src/`, `public/`, `package.json`, `README.md`, `LICENSE`. Exclude `references/`, `plans/`, `ideas/`, `node_modules/`, etc.

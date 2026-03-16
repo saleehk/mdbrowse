@@ -32,7 +32,7 @@ program
       auth = { username: user, password: rest.join(':') };
     }
 
-    await startServer({
+    const { port: actualPort } = await startServer({
       directory,
       port,
       host,
@@ -41,7 +41,7 @@ program
       readOnly,
     });
 
-    const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
+    const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${actualPort}`;
     console.log(`\n  mdbrowse-cli serving ${directory}`);
     console.log(`  → ${url}\n`);
 
@@ -49,7 +49,7 @@ program
       const { startTunnel, registerCleanup } = await import('../src/tunnel.js');
       try {
         console.log('  Starting Cloudflare Tunnel...');
-        const { url: tunnelUrl, child } = await startTunnel(port);
+        const { url: tunnelUrl, child } = await startTunnel(actualPort);
         registerCleanup(child);
         console.log(`  → ${tunnelUrl}\n`);
       } catch (err) {

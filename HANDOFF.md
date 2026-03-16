@@ -6,18 +6,18 @@ No simple way to browse and view rendered markdown files on a remote/headless se
 
 ## Solution
 
-`mdbrowse` — an open source Node CLI that spins up a local web UI to browse and preview files in any directory.
+`mdbrowse-cli` — an open source Node CLI that spins up a local web UI to browse and preview files in any directory.
 
 ```
-npx mdbrowse .
+npx mdbrowse-cli .
 ```
 
 → Instant web server with file tree sidebar, rendered markdown, live reload, and optional Cloudflare Tunnel for remote access.
 
 ## Key Decisions
 
-- **Name:** `mdbrowse` (available on npm, PyPI, crates.io)
-- **Ecosystem:** Node.js / npm — `npx mdbrowse .` for zero-install
+- **Name:** `mdbrowse-cli` (published on npm)
+- **Ecosystem:** Node.js / npm — `npx mdbrowse-cli .` for zero-install
 - **Edit mode:** enabled by default (toggle button), `--read-only` to disable
 - **All files shown:** not just markdown — other files get syntax-highlighted raw view
 - **Live reload:** core feature, not optional — file watcher + WebSocket
@@ -49,7 +49,7 @@ npx mdbrowse .
 ## Engineering Tasks
 
 ### Slice 1 — Core browser (start here)
-- [ ] CLI entry point (`bin/mdbrowse.js`) with commander
+- [ ] CLI entry point (`bin/mdbrowse-cli.js`) with commander
 - [ ] Directory scanner (respects `.gitignore` via `ignore` package)
 - [ ] Fastify HTTP server
 - [ ] Markdown renderer (unified + remark-gfm + remark-html + shiki + remark-math + rehype-katex + gray-matter)

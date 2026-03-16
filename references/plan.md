@@ -5,7 +5,7 @@
 - **Idea:** `mdbrowse` — a CLI that serves a local web UI to browse and preview files in any directory, with first-class markdown rendering
 - **Target user:** Developers working on remote servers where AI coding tools generate markdown files
 - **Problem:** No simple way to view rendered markdown on a remote/headless machine. Existing tools are either unmaintained, terminal-only, or require API keys.
-- **Proposed solution:** `npx mdbrowse .` → instant local web server with file tree sidebar, rendered markdown, live reload, and optional Cloudflare Tunnel for remote access
+- **Proposed solution:** `npx mdbrowse-cli .` → instant local web server with file tree sidebar, rendered markdown, live reload, and optional Cloudflare Tunnel for remote access
 - **Why now:** AI coding tools (Claude Code, Codex, etc.) are generating more markdown than ever. Remote dev environments are the norm. The gap between "file exists on server" and "I can read it nicely" is real and growing.
 
 ## 2. Challenge pass
@@ -46,7 +46,7 @@ The real value isn't "markdown viewer" — it's **instant file browser for headl
 - **Assumption:** The core experience (browse + preview + live reload) is useful enough to share
 - **Success signal:** Saleeh uses it on his own server and it replaces his current workflow
 - **Biggest risk:** UI doesn't feel good enough to screenshot/share
-- **Exit criterion:** Can run `npx mdbrowse .` on a remote server and browse files from local browser
+- **Exit criterion:** Can run `npx mdbrowse-cli .` on a remote server and browse files from local browser
 
 ### Phase 2 — MVP (3-5 days)
 - **Goal:** Feature-complete v1 ready for npm publish
@@ -85,7 +85,7 @@ Minimal working product: CLI → server → web UI with sidebar + rendered conte
 
 ### Core flows
 
-1. User runs `npx mdbrowse .` (or `mdbrowse /path/to/dir`)
+1. User runs `npx mdbrowse-cli .` (or `mdbrowse-cli /path/to/dir`)
 2. CLI scans directory, respects `.gitignore`
 3. Starts HTTP server on available port
 4. Opens browser (or prints URL if headless)

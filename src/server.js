@@ -1,4 +1,5 @@
 import fs from 'fs';
+import net from 'net';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Hono } from 'hono';
@@ -12,6 +13,34 @@ import { search } from './search.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, '..', 'public');
+
+/**
+ * Check if a port is available.
+ */
+function isPortAvailable(port, host) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(port, host);
+  });
+}
+
+/**
+ * Find the next available port starting from the given port.
+ * Tries up to maxAttempts ports.
+ */
+async function findAvailablePort(startPort, host, maxAttempts = 10) {
+  for (let i = 0; i < maxAttempts; i++) {
+    const port = startPort + i;
+    if (await isPortAvailable(port, host)) {
+      return port;
+    }
+  }
+  return null;
+}
 
 const MAX_FILE_SIZE = 1024 * 1024; // 1 MB
 
@@ -256,21 +285,22 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     return c.html(html);
   });
 
+  // Find an available port
+  const availablePort = await findAvailablePort(port, host);
+  if (!availablePort) {
+    console.error(`\n  Error: No available port found (tried ${port}-${port + 9}).`);
+    console.error(`  Try: mdbrowse-cli --port <number>\n`);
+    process.exit(1);
+  }
+  if (availablePort !== port) {
+    console.log(`  Port ${port} in use, using ${availablePort} instead.`);
+  }
+
   // Start HTTP server
   const server = serve({
     fetch: app.fetch,
-    port,
+    port: availablePort,
     hostname: host,
-  });
-
-  // Handle port-in-use errors
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.error(`\n  Error: Port ${port} is already in use.`);
-      console.error(`  Try: mdbrowse-cli --port ${port + 1}\n`);
-      process.exit(1);
-    }
-    throw err;
   });
 
   // WebSocket server
@@ -295,5 +325,5 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
   // Start file watcher
   startWatcher(rootDir, broadcast, respectIgnore);
 
-  return server;
+  return { server, port: availablePort };
 }

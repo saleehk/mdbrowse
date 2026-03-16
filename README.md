@@ -2,8 +2,8 @@
 
 **Browse and preview markdown files in any directory.**
 
-[![npm version](https://img.shields.io/npm/v/mdbrowse)](https://www.npmjs.com/package/mdbrowse)
-[![license](https://img.shields.io/npm/l/mdbrowse)](LICENSE)
+[![npm version](https://img.shields.io/npm/v/mdbrowse-cli)](https://www.npmjs.com/package/mdbrowse-cli)
+[![license](https://img.shields.io/npm/l/mdbrowse-cli)](LICENSE)
 
 Zero-install CLI that spins up a local web UI with a file tree, rendered markdown, live reload, and optional Cloudflare Tunnel for remote access.
 
@@ -13,9 +13,9 @@ Zero-install CLI that spins up a local web UI with a file tree, rendered markdow
 ## Quick start
 
 ```bash
-npx mdbrowse .           # serve current directory
-npx mdbrowse ./docs      # serve a specific folder
-npx mdbrowse . --tunnel  # expose via Cloudflare Tunnel
+npx mdbrowse-cli .           # serve current directory
+npx mdbrowse-cli ./docs      # serve a specific folder
+npx mdbrowse-cli . --tunnel  # expose via Cloudflare Tunnel
 ```
 
 Opens in your browser automatically. On SSH/headless servers, grab the printed URL.
@@ -49,7 +49,7 @@ Opens in your browser automatically. On SSH/headless servers, grab the printed U
 
 ## Use cases
 
-**Remote / headless servers** — Working on a cloud dev box or VPS? Run `npx mdbrowse . --tunnel` to get a public URL and view rendered markdown from any browser.
+**Remote / headless servers** — Working on a cloud dev box or VPS? Run `npx mdbrowse-cli . --tunnel` to get a public URL and view rendered markdown from any browser.
 
 **AI coding tools** — Using Claude Code, Codex, or similar tools that generate lots of markdown? Browse their output rendered, not raw.
 

@@ -7,12 +7,12 @@ A CLI that spins up a local web UI to browse and preview markdown files in any d
 ## Usage
 
 ```
-npx mdbrowse .
-npx mdbrowse ./docs
-npx mdbrowse . --tunnel
-npx mdbrowse . --auth user:pass
-npx mdbrowse . --read-only
-npx mdbrowse . --no-ignore
+npx mdbrowse-cli .
+npx mdbrowse-cli ./docs
+npx mdbrowse-cli . --tunnel
+npx mdbrowse-cli . --auth user:pass
+npx mdbrowse-cli . --read-only
+npx mdbrowse-cli . --no-ignore
 ```
 
 ## Core use case
@@ -26,10 +26,9 @@ Working on a remote server (cloud dev box, VPS) where AI coding tools (Claude Co
 
 ## Package
 
-- **Name:** `mdbrowse`
-- **Registry:** npm (available — checked 2026-03-15)
-- **Also available on:** PyPI, crates.io (in case of future ports)
-- **Install:** `npx mdbrowse .` (zero install) or `npm install -g mdbrowse`
+- **Name:** `mdbrowse-cli`
+- **Registry:** npm (published)
+- **Install:** `npx mdbrowse-cli .` (zero install) or `npm install -g mdbrowse-cli`
 
 ## Features
 
