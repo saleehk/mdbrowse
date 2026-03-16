@@ -10,7 +10,7 @@ test.describe('Theme Toggle', () => {
     await page.goto('/');
 
     // Clear any stored theme so we start from a known state
-    await page.evaluate(() => localStorage.removeItem('mdbrowse-theme'));
+    await page.evaluate(() => localStorage.removeItem('mdnow-theme'));
     await page.reload();
     await page.waitForSelector('#theme-toggle');
 
@@ -30,7 +30,7 @@ test.describe('Theme Toggle', () => {
 
     // Set to dark explicitly
     await page.evaluate(() => {
-      localStorage.setItem('mdbrowse-theme', 'dark');
+      localStorage.setItem('mdnow-theme', 'dark');
     });
     await page.reload();
     await page.waitForSelector('#theme-toggle');
@@ -41,7 +41,7 @@ test.describe('Theme Toggle', () => {
     await page.locator('#theme-toggle').click();
 
     // Verify localStorage was updated
-    const theme = await page.evaluate(() => localStorage.getItem('mdbrowse-theme'));
+    const theme = await page.evaluate(() => localStorage.getItem('mdnow-theme'));
     expect(theme).toBe('light');
 
     // Reload and check it persists

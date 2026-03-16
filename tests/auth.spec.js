@@ -11,7 +11,7 @@ test.describe('Basic Auth', () => {
   let authServer;
 
   test.beforeAll(async () => {
-    // Start a separate mdbrowse instance with auth on port 9877
+    // Start a separate mdnow instance with auth on port 9877
     authServer = spawn('node', [binPath, fixturesDir, '--port', '9877', '--auth', 'testuser:testpass'], {
       stdio: 'pipe',
       env: { ...process.env, SSH_CLIENT: '1' }, // prevent browser open

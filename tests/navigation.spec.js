@@ -8,7 +8,7 @@ test.describe('Navigation & File Tree', () => {
     await page.waitForSelector('.tree-file');
 
     // Sidebar logo is visible
-    await expect(page.locator('.logo')).toHaveText('mdbrowse');
+    await expect(page.locator('.logo')).toHaveText('mdnow');
     // README was auto-loaded
     await expect(page.locator('.markdown-body')).toBeVisible();
   });

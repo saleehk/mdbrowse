@@ -267,7 +267,7 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`\n  Error: Port ${port} is already in use.`);
-      console.error(`  Try: mdbrowse --port ${port + 1}\n`);
+      console.error(`  Try: mdnow --port ${port + 1}\n`);
       process.exit(1);
     }
     throw err;
