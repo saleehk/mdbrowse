@@ -154,9 +154,24 @@ html, body {
   transition: all 0.15s ease;
 }
 
-#theme-toggle:hover {
+#theme-toggle:hover,
+#logout-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text);
+}
+
+#logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 /* Show sun in dark mode, moon in light mode */

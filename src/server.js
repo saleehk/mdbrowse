@@ -3,7 +3,6 @@ import net from 'net';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Hono } from 'hono';
-import { basicAuth } from 'hono/basic-auth';
 import { serve } from '@hono/node-server';
 import { WebSocketServer } from 'ws';
 import { scanDirectory } from './scanner.js';
@@ -114,7 +113,100 @@ function csrfCheck(c) {
 
 const MAX_WS_CLIENTS = 100;
 
-export async function startServer({ directory, port, host, respectIgnore, auth, readOnly }) {
+function loginPageHtml() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — mdbrowse</title>
+  <style>
+    :root {
+      --bg: #ffffff; --bg-secondary: #f6f8fa; --text: #1f2328;
+      --text-secondary: #656d76; --text-muted: #8b949e; --border: #d0d7de;
+      --accent: #0969da; --accent-hover: #0550ae;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1117; --bg-secondary: #161b22; --text: #e6edf3;
+        --text-secondary: #8b949e; --text-muted: #6e7681; --border: #30363d;
+        --accent: #58a6ff; --accent-hover: #79c0ff;
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh;
+    }
+    .login-card {
+      width: 100%; max-width: 360px; padding: 40px 32px;
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: 12px; text-align: center;
+    }
+    .login-card h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .login-card p { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; }
+    .login-card input {
+      width: 100%; padding: 10px 14px; font-size: 14px; font-family: inherit;
+      color: var(--text); background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; outline: none; margin-bottom: 16px;
+    }
+    .login-card input:focus { border-color: var(--accent); }
+    .login-card input::placeholder { color: var(--text-muted); }
+    .login-card button {
+      width: 100%; padding: 10px; font-size: 14px; font-weight: 600;
+      font-family: inherit; color: #fff; background: var(--accent);
+      border: none; border-radius: 8px; cursor: pointer;
+    }
+    .login-card button:hover { background: var(--accent-hover); }
+    .login-card button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error { color: #f85149; font-size: 13px; margin-bottom: 12px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <h1>mdbrowse</h1>
+    <p>Enter access token to continue</p>
+    <div class="error" id="error">Invalid token</div>
+    <form id="login-form">
+      <input type="password" id="token-input" placeholder="Enter access token" autocomplete="off" autofocus>
+      <button type="submit">Sign in</button>
+    </form>
+  </div>
+  <script>
+    const form = document.getElementById('login-form');
+    const input = document.getElementById('token-input');
+    const error = document.getElementById('error');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      error.style.display = 'none';
+      const btn = form.querySelector('button');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: input.value }),
+        });
+        if (res.ok) {
+          localStorage.setItem('mdbrowse-token', input.value);
+          window.location.href = '/';
+        } else {
+          error.style.display = 'block';
+        }
+      } catch {
+        error.textContent = 'Connection error';
+        error.style.display = 'block';
+      }
+      btn.disabled = false;
+    });
+  </script>
+</body>
+</html>`;
+}
+
+export async function startServer({ directory, port, host, respectIgnore, token, readOnly }) {
   const rootDir = path.resolve(directory);
 
   if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) {
@@ -143,9 +235,57 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     c.header('Content-Security-Policy', CSP);
   });
 
-  if (auth) {
-    app.use('*', basicAuth({ username: auth.username, password: auth.password }));
+  // Token auth middleware
+  if (token) {
+    app.use('*', async (c, next) => {
+      const reqPath = c.req.path;
+
+      // Allow login page and login API without token
+      if (reqPath === '/login' || reqPath === '/api/login') {
+        return next();
+      }
+
+      // Allow static assets for login page styling
+      if (reqPath.startsWith('/assets/')) {
+        return next();
+      }
+
+      // Check Authorization: Bearer <token>
+      const authHeader = c.req.header('authorization');
+      if (authHeader?.startsWith('Bearer ') && authHeader.slice(7) === token) {
+        return next();
+      }
+
+      // Check ?token= query param (for deep links and WebSocket)
+      const queryToken = c.req.query('token');
+      if (queryToken === token) {
+        return next();
+      }
+
+      // Redirect to login page for browser requests, 401 for API
+      if (reqPath.startsWith('/api/') || reqPath.startsWith('/ws')) {
+        return c.json({ error: 'Unauthorized' }, 401);
+      }
+      return c.redirect('/login');
+    });
   }
+
+  // Login page
+  app.get('/login', (c) => {
+    return c.html(loginPageHtml());
+  });
+
+  // Login API
+  app.post('/api/login', async (c) => {
+    if (!token) {
+      return c.json({ ok: true });
+    }
+    const body = await c.req.json();
+    if (body.token === token) {
+      return c.json({ ok: true });
+    }
+    return c.json({ error: 'Invalid token' }, 401);
+  });
 
   // API: file tree
   app.get('/api/tree', (c) => {
@@ -269,7 +409,7 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
 
   // API: config
   app.get('/api/config', (c) => {
-    return c.json({ readOnly: !!readOnly });
+    return c.json({ readOnly: !!readOnly, auth: !!token });
   });
 
   // API: search
@@ -377,39 +517,34 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     hostname: host,
   });
 
-  // WebSocket server with origin validation
+  // WebSocket server with origin + token validation
   const wss = new WebSocketServer({
     server,
     verifyClient: (info) => {
       const origin = info.origin || info.req.headers.origin;
-      if (!origin) return true; // Allow non-browser clients (curl, etc.)
-      try {
-        const url = new URL(origin);
-        return url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.trycloudflare.com');
-      } catch {
-        return false;
+      if (origin) {
+        try {
+          const url = new URL(origin);
+          if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1' && !url.hostname.endsWith('.trycloudflare.com')) {
+            return false;
+          }
+        } catch {
+          return false;
+        }
       }
+
+      // Token check
+      if (token) {
+        const url = new URL(info.req.url, 'http://localhost');
+        const queryToken = url.searchParams.get('token');
+        return queryToken === token;
+      }
+      return true;
     }
   });
 
   const clients = new Set();
-  wss.on('connection', (ws, req) => {
-    // Authenticate WebSocket connections when auth is enabled
-    if (auth) {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Basic ')) {
-        ws.close(1008, 'Unauthorized');
-        return;
-      }
-      const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
-      const [user, ...rest] = decoded.split(':');
-      const pass = rest.join(':');
-      if (user !== auth.username || pass !== auth.password) {
-        ws.close(1008, 'Unauthorized');
-        return;
-      }
-    }
-
+  wss.on('connection', (ws) => {
     // Connection limit
     if (clients.size >= MAX_WS_CLIENTS) {
       ws.close(1013, 'Too many connections');

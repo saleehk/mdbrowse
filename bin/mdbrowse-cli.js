@@ -32,6 +32,7 @@ const defaults = {
   port: process.env.MDBROWSE_PORT || fileConfig.port?.toString() || '3000',
   host: process.env.MDBROWSE_HOST || fileConfig.host || '0.0.0.0',
   tunnel: process.env.MDBROWSE_TUNNEL === '1' || fileConfig.tunnel === true,
+  token: process.env.MDBROWSE_TOKEN || fileConfig.token || null,
   auth: process.env.MDBROWSE_AUTH || fileConfig.auth || null,
   readOnly: process.env.MDBROWSE_READ_ONLY === '1' || fileConfig.readOnly === true,
   noIgnore: process.env.MDBROWSE_NO_IGNORE === '1' || fileConfig.noIgnore === true,
@@ -42,12 +43,13 @@ const program = new Command();
 program
   .name('mdbrowse-cli')
   .description('Browse and preview markdown files in any directory')
-  .version('0.2.0')
+  .version('0.3.0')
   .argument('[directory]', 'Directory to serve', '.')
   .option('-p, --port <number>', 'Port to listen on', defaults.port)
   .option('--host <address>', 'Host to bind to', defaults.host)
   .option('--no-ignore', 'Show all files (ignore .gitignore)')
-  .option('--auth <credentials>', 'Require basic auth (user:pass)')
+  .option('--token <secret>', 'Require token authentication')
+  .option('--auth <credentials>', 'Require auth (user:pass — password used as token)')
   .option('--read-only', 'Disable file editing')
   .option('--tunnel', 'Expose via Cloudflare Tunnel (requires cloudflared)')
   .action(async (directory, options) => {
@@ -56,16 +58,17 @@ program
     const respectIgnore = defaults.noIgnore ? false : options.ignore !== false;
     const readOnly = options.readOnly || defaults.readOnly;
 
-    // Auth: CLI arg > env var > none
-    const authStr = options.auth || defaults.auth;
-    let auth;
-    if (authStr) {
-      if (!authStr.includes(':')) {
-        console.error('Error: --auth (or MDBROWSE_AUTH) must be in user:pass format');
-        process.exit(1);
+    // Token: --token > --auth (extract password) > env/config
+    let token = options.token || defaults.token;
+    if (!token && (options.auth || defaults.auth)) {
+      const authStr = options.auth || defaults.auth;
+      if (authStr.includes(':')) {
+        // Extract password part as the token
+        const [, ...rest] = authStr.split(':');
+        token = rest.join(':');
+      } else {
+        token = authStr;
       }
-      const [user, ...rest] = authStr.split(':');
-      auth = { username: user, password: rest.join(':') };
     }
 
     const { port: actualPort } = await startServer({
@@ -73,19 +76,19 @@ program
       port,
       host,
       respectIgnore,
-      auth,
+      token,
       readOnly,
     });
 
     // Security warnings
-    if ((options.tunnel || defaults.tunnel) && !authStr) {
+    if ((options.tunnel || defaults.tunnel) && !token) {
       console.warn('\n  ⚠ WARNING: Tunnel is public with no authentication.');
     }
-    if (authStr && host === '0.0.0.0') {
-      console.warn('\n  ⚠ Warning: Basic auth over HTTP transmits credentials in cleartext.');
+    if (token && host === '0.0.0.0') {
+      console.warn('\n  ⚠ Warning: Token transmitted in cleartext over HTTP.');
     }
-    if (fileConfig.auth) {
-      console.warn('\n  ⚠ Warning: Auth credentials in .mdbrowse.json — use MDBROWSE_AUTH env var instead.');
+    if (fileConfig.token) {
+      console.warn('\n  ⚠ Warning: Token in .mdbrowse.json — use MDBROWSE_TOKEN env var instead.');
     }
 
     const localUrl = `http://localhost:${actualPort}`;
@@ -103,6 +106,11 @@ program
         }
       }
     }
+
+    if (token) {
+      console.log(`  → Token:   ${localUrl}?token=${token}`);
+    }
+
     console.log();
 
     if (options.tunnel || defaults.tunnel) {
@@ -111,7 +119,11 @@ program
         console.log('  Starting Cloudflare Tunnel...');
         const { url: tunnelUrl, child } = await startTunnel(actualPort);
         registerCleanup(child);
-        console.log(`  → ${tunnelUrl}\n`);
+        if (token) {
+          console.log(`  → ${tunnelUrl}?token=${token}\n`);
+        } else {
+          console.log(`  → ${tunnelUrl}\n`);
+        }
       } catch (err) {
         console.error(`\n  ${err.message}\n`);
         process.exit(1);
