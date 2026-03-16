@@ -1,10 +1,10 @@
 {
-  "name": "mdbrowser",
+  "name": "mdnow",
   "version": "0.1.0",
   "description": "CLI tool to browse and preview markdown files in any directory",
   "type": "module",
   "bin": {
-    "mdbrowse": "bin/mdbrowse.js"
+    "mdnow": "bin/mdnow.js"
   },
   "files": [
     "bin/",
