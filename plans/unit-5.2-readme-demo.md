@@ -11,7 +11,7 @@ A polished README with usage docs, feature list, and visuals.
 ## Tasks
 - [ ] Write one-liner description at top
 - [ ] Add hero screenshot or GIF showing the app in action
-- [ ] Document install: `npx mdbrowse .`
+- [ ] Document install: `npx mdbrowse-cli .`
 - [ ] Document all CLI flags: `--port`, `--host`, `--auth`, `--tunnel`, `--read-only`, `--no-ignore`
 - [ ] Write feature list (markdown rendering, live reload, dark/light theme, search, edit mode, etc.)
 - [ ] Add contributing section

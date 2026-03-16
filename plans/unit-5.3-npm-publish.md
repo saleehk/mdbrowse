@@ -19,13 +19,13 @@ Published on npm — `npx mdbrowse-cli .` works from anywhere with no prior inst
 
 ## Implementation notes
 - **package.json `files`:** should include `bin/`, `src/`, `public/`, `package.json`, `README.md`, `LICENSE`. Exclude `references/`, `plans/`, `ideas/`, `node_modules/`, etc.
-- **package.json `bin`:** should be `{ "mdbrowse": "bin/mdbrowse.js" }`.
+- **package.json `bin`:** should be `{ "mdbrowse-cli": "bin/mdbrowse-cli.js" }`.
 - **Keywords:** `["markdown", "browser", "viewer", "cli", "preview", "server", "live-reload"]`.
-- **npm pack check:** run `npm pack --dry-run` to see what would be included. Then `npm pack` and `tar -tzf mdbrowse-*.tgz` to verify.
-- **Test npx:** from a temp directory with no node_modules, run `npx mdbrowse .` and verify it downloads, installs deps, and starts the server.
-- **GitHub repo:** create repo `mdbrowse`, push with main branch, add description and topics.
+- **npm pack check:** run `npm pack --dry-run` to see what would be included. Then `npm pack` and `tar -tzf mdbrowse-cli-*.tgz` to verify.
+- **Test npx:** from a temp directory with no node_modules, run `npx mdbrowse-cli .` and verify it downloads, installs deps, and starts the server.
+- **GitHub repo:** repo is `saleehk/mdbrowse` on GitHub.
 
 ## Done when
 - `npm pack` produces a clean tarball with only necessary files.
 - `npm publish` succeeds.
-- `npx mdbrowse .` works from a clean environment (downloads, installs, serves).
+- `npx mdbrowse-cli .` works from a clean environment (downloads, installs, serves).
