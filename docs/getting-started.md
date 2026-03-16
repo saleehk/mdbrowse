@@ -75,3 +75,26 @@ fn main() {
 ```
 
 > **Tip:** All code blocks are highlighted using Shiki with VS Code-quality themes that adapt to your dark/light preference.
+
+## Configuration
+
+### Config file
+
+Place a `.mdbrowse.json` in the directory you're serving:
+
+```json
+{
+  "port": 4000,
+  "readOnly": true
+}
+```
+
+### Environment variables
+
+```bash
+export MDBROWSE_PORT=8080
+export MDBROWSE_AUTH=admin:secret
+npx mdbrowse-cli .
+```
+
+See [configuration.md](configuration.md) for the full list of options and the priority chain.

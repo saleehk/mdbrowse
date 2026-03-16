@@ -105,11 +105,47 @@ Toggle to edit any file, Ctrl+S to save, with tab indentation support.
 |------|---------|-------------|
 | `[directory]` | `.` | Directory to serve |
 | `-p, --port <number>` | `3000` | Port to listen on |
-| `--host <address>` | `localhost` | Host to bind to (use `0.0.0.0` for all interfaces) |
+| `--host <address>` | `0.0.0.0` | Host to bind to |
 | `--tunnel` | off | Expose via Cloudflare Tunnel (requires `cloudflared`) |
 | `--auth <user:pass>` | off | Require basic HTTP authentication |
 | `--read-only` | off | Disable file editing |
 | `--no-ignore` | off | Show all files (don't respect `.gitignore`) |
+
+If the port is in use, mdbrowse-cli automatically tries the next available port.
+
+## Configuration
+
+mdbrowse-cli supports a config file and environment variables so you don't have to pass flags every time.
+
+**Priority chain:** `CLI args > Environment variables > .mdbrowse.json > Built-in defaults`
+
+### Config file (`.mdbrowse.json`)
+
+Place a `.mdbrowse.json` in the directory you're serving:
+
+```json
+{
+  "port": 4000,
+  "host": "0.0.0.0",
+  "tunnel": false,
+  "auth": "admin:secret",
+  "readOnly": true,
+  "noIgnore": false
+}
+```
+
+### Environment variables
+
+| Variable | Maps to | Example |
+|----------|---------|---------|
+| `MDBROWSE_PORT` | `--port` | `MDBROWSE_PORT=8080` |
+| `MDBROWSE_HOST` | `--host` | `MDBROWSE_HOST=localhost` |
+| `MDBROWSE_TUNNEL` | `--tunnel` | `MDBROWSE_TUNNEL=1` |
+| `MDBROWSE_AUTH` | `--auth` | `MDBROWSE_AUTH=admin:secret` |
+| `MDBROWSE_READ_ONLY` | `--read-only` | `MDBROWSE_READ_ONLY=1` |
+| `MDBROWSE_NO_IGNORE` | `--no-ignore` | `MDBROWSE_NO_IGNORE=1` |
+
+See [docs/configuration.md](docs/configuration.md) for full details, examples, and shell profile setup.
 
 ## Use cases
 
@@ -124,7 +160,7 @@ Toggle to edit any file, Ctrl+S to save, with tab indentation support.
 ```bash
 git clone https://github.com/saleehk/mdbrowse.git
 cd mdbrowse && npm install
-npx mdbrowse-cli demo/
+npx mdbrowse-cli docs/
 ```
 
 ## Tech stack
