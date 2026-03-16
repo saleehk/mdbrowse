@@ -6,7 +6,7 @@ import { startServer } from '../src/server.js';
 const program = new Command();
 
 program
-  .name('mdnow')
+  .name('mdbrowse-cli')
   .description('Browse and preview markdown files in any directory')
   .version('0.1.0')
   .argument('[directory]', 'Directory to serve', '.')
@@ -42,7 +42,7 @@ program
     });
 
     const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
-    console.log(`\n  mdnow serving ${directory}`);
+    console.log(`\n  mdbrowse-cli serving ${directory}`);
     console.log(`  → ${url}\n`);
 
     if (options.tunnel) {

@@ -5,13 +5,13 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.join(__dirname, 'fixtures');
-const binPath = path.join(__dirname, '..', 'bin', 'mdnow.js');
+const binPath = path.join(__dirname, '..', 'bin', 'mdbrowse-cli.js');
 
 test.describe('Basic Auth', () => {
   let authServer;
 
   test.beforeAll(async () => {
-    // Start a separate mdnow instance with auth on port 9877
+    // Start a separate mdbrowse-cli instance with auth on port 9877
     authServer = spawn('node', [binPath, fixturesDir, '--port', '9877', '--auth', 'testuser:testpass'], {
       stdio: 'pipe',
       env: { ...process.env, SSH_CLIENT: '1' }, // prevent browser open

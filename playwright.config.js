@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'node bin/mdnow.js tests/fixtures --port 9876',
+    command: 'node bin/mdbrowse-cli.js tests/fixtures --port 9876',
     url: 'http://localhost:9876',
     reuseExistingServer: !process.env.CI,
     timeout: 15000,

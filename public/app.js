@@ -1,4 +1,4 @@
-/* ── mdnow client ── */
+/* ── mdbrowse-cli client ── */
 
 const fileTreeEl = document.getElementById('file-tree');
 const contentInner = document.getElementById('content-inner');
@@ -31,7 +31,7 @@ function isImageFile(name) {
 // ── Theme ──
 
 function getTheme() {
-  return localStorage.getItem('mdnow-theme') || 'auto';
+  return localStorage.getItem('mdbrowse-cli-theme') || 'auto';
 }
 
 function applyTheme(theme) {
@@ -39,7 +39,7 @@ function applyTheme(theme) {
   if (theme !== 'auto') {
     document.documentElement.classList.add(theme);
   }
-  localStorage.setItem('mdnow-theme', theme);
+  localStorage.setItem('mdbrowse-cli-theme', theme);
 }
 
 themeToggle.addEventListener('click', () => {
@@ -199,17 +199,17 @@ function renderFile(filePath, data) {
   const pathHeader = `<div class="file-path-header">${escapeHtml(filePath)}</div>`;
 
   if (data.type === 'image') {
-    document.title = `${filePath} — mdnow`;
+    document.title = `${filePath} — mdbrowse-cli`;
     const name = filePath.split('/').pop();
     contentInner.innerHTML = pathHeader + `<div class="image-preview"><img src="${data.src}" alt="${escapeHtml(name)}"></div>`;
   } else if (data.type === 'notice') {
-    document.title = `${filePath} — mdnow`;
+    document.title = `${filePath} — mdbrowse-cli`;
     contentInner.innerHTML = pathHeader + `<div class="file-notice">${escapeHtml(data.message)}</div>`;
   } else if (data.type === 'markdown') {
-    document.title = `${data.title || filePath} — mdnow`;
+    document.title = `${data.title || filePath} — mdbrowse-cli`;
     contentInner.innerHTML = pathHeader + `<div class="markdown-body">${data.html}</div>`;
   } else {
-    document.title = `${filePath} — mdnow`;
+    document.title = `${filePath} — mdbrowse-cli`;
     contentInner.innerHTML = pathHeader + `<div class="code-view">${data.html}</div>`;
   }
 
@@ -265,12 +265,12 @@ window.addEventListener('popstate', (e) => {
 });
 
 function showWelcome() {
-  document.title = 'mdnow';
+  document.title = 'mdbrowse-cli';
   hideAllToolbarButtons();
   editMode = false;
   contentInner.innerHTML = `
     <div id="welcome">
-      <h1>mdnow</h1>
+      <h1>mdbrowse-cli</h1>
       <p>Select a file from the sidebar to get started.</p>
     </div>
   `;
