@@ -239,6 +239,7 @@ function initMermaid() {
   mermaid.initialize({
     startOnLoad: false,
     theme: isDark ? 'dark' : 'default',
+    securityLevel: 'strict',
   });
 
   blocks.forEach((block, i) => {

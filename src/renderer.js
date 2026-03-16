@@ -4,10 +4,49 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import remarkHtml from 'remark-html';
-import rehypeKatex from 'rehype-katex';
+import rehypeParse from 'rehype-parse';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeStringify from 'rehype-stringify';
 import matter from 'gray-matter';
 import { createHighlighter } from 'shiki';
+
+// Permissive sanitization schema based on GitHub defaults
+// Allows tables, images, links (http/https only), structural HTML
+// Strips scripts, event handlers, javascript: URLs, iframes, object, embed
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames || []),
+    'div', 'span', 'details', 'summary',
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
+    'img', 'a', 'p', 'br', 'hr',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+    'pre', 'code', 'blockquote',
+    'strong', 'em', 'b', 'i', 'u', 's', 'del', 'ins',
+    'sup', 'sub', 'mark', 'abbr', 'kbd', 'var', 'samp',
+    'figure', 'figcaption', 'picture', 'source',
+    'input', // for task lists
+  ],
+  attributes: {
+    ...defaultSchema.attributes,
+    '*': ['className', 'id'],
+    a: ['href', 'title', 'target', 'rel'],
+    img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+    td: ['align', 'valign', 'colSpan', 'rowSpan'],
+    th: ['align', 'valign', 'colSpan', 'rowSpan', 'scope'],
+    input: ['type', 'checked', 'disabled'],
+    code: ['className'],
+    div: ['className'],
+    span: ['className'],
+    source: ['srcSet', 'type', 'media'],
+  },
+  protocols: {
+    href: ['http', 'https', 'mailto'],
+    src: ['http', 'https', '/raw/', 'data'],
+  },
+  strip: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'textarea', 'select', 'button'],
+};
 
 let highlighterPromise = null;
 
@@ -59,7 +98,7 @@ export async function renderMarkdown(content, filePath) {
 
   // Build the remark pipeline
   // We use remark-html which outputs an HTML string directly,
-  // then do a second pass for math with rehype
+  // then sanitize the output with rehype-sanitize
   const remarkResult = await unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -67,7 +106,14 @@ export async function renderMarkdown(content, filePath) {
     .use(remarkHtml, { sanitize: false })
     .process(body);
 
-  let html = String(remarkResult);
+  // Sanitize HTML to prevent XSS from malicious markdown
+  const sanitized = await unified()
+    .use(rehypeParse, { fragment: true })
+    .use(rehypeSanitize, sanitizeSchema)
+    .use(rehypeStringify)
+    .process(String(remarkResult));
+
+  let html = String(sanitized);
 
   // Highlight code blocks in the HTML
   // Match <code class="language-xxx">...</code> blocks
