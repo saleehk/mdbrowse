@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import net from 'net';
 import path from 'path';
@@ -113,6 +114,7 @@ function csrfCheck(c) {
 }
 
 const MAX_WS_CLIENTS = 100;
+const WS_TOKEN_TTL = 30_000; // 30 seconds
 
 export async function startServer({ directory, port, host, respectIgnore, auth, readOnly }) {
   const rootDir = path.resolve(directory);
@@ -272,6 +274,32 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     return c.json({ readOnly: !!readOnly });
   });
 
+  // API: one-time WebSocket auth token
+  // Browsers don't send Basic auth headers on WebSocket upgrade requests,
+  // so the client fetches a short-lived token over HTTP (which does carry auth)
+  // and passes it as a query param when opening the WebSocket.
+  const wsTokens = new Map(); // token -> expiry timestamp
+
+  app.get('/api/ws-token', (c) => {
+    const token = crypto.randomBytes(32).toString('hex');
+    wsTokens.set(token, Date.now() + WS_TOKEN_TTL);
+    return c.json({ token });
+  });
+
+  function consumeWsToken(token) {
+    const expiry = wsTokens.get(token);
+    if (!expiry) return false;
+    wsTokens.delete(token);
+    // Prune expired tokens opportunistically
+    if (wsTokens.size > 0) {
+      const now = Date.now();
+      for (const [t, exp] of wsTokens) {
+        if (exp < now) wsTokens.delete(t);
+      }
+    }
+    return expiry >= Date.now();
+  }
+
   // API: search
   app.get('/api/search', async (c) => {
     const q = c.req.query('q');
@@ -394,17 +422,28 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
 
   const clients = new Set();
   wss.on('connection', (ws, req) => {
-    // Authenticate WebSocket connections when auth is enabled
+    // Authenticate WebSocket connections when auth is enabled.
+    // Accept either a valid one-time token (query param) or a Basic auth header.
     if (auth) {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Basic ')) {
-        ws.close(1008, 'Unauthorized');
-        return;
+      const url = new URL(req.url, 'http://localhost');
+      const token = url.searchParams.get('token');
+      let authenticated = false;
+
+      if (token && consumeWsToken(token)) {
+        authenticated = true;
+      } else {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Basic ')) {
+          const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
+          const [user, ...rest] = decoded.split(':');
+          const pass = rest.join(':');
+          if (user === auth.username && pass === auth.password) {
+            authenticated = true;
+          }
+        }
       }
-      const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
-      const [user, ...rest] = decoded.split(':');
-      const pass = rest.join(':');
-      if (user !== auth.username || pass !== auth.password) {
+
+      if (!authenticated) {
         ws.close(1008, 'Unauthorized');
         return;
       }

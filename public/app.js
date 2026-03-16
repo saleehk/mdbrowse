@@ -73,7 +73,7 @@ document.getElementById('content').addEventListener('click', () => toggleSidebar
 // ── File Tree ──
 
 async function fetchTree() {
-  const res = await fetch('/api/tree');
+  const res = await fetch('/api/tree', { credentials: 'include' });
   treeData = await res.json();
   renderTree(treeData);
 }
@@ -183,7 +183,7 @@ async function loadFile(filePath) {
   }
 
   try {
-    const res = await fetch('/api/file?path=' + encodeURIComponent(filePath));
+    const res = await fetch('/api/file?path=' + encodeURIComponent(filePath), { credentials: 'include' });
     if (!res.ok) {
       contentInner.innerHTML = `<div class="welcome"><h2>Error</h2><p>Could not load file: ${escapeHtml(filePath)}</p></div>`;
       return;
@@ -279,9 +279,20 @@ function showWelcome() {
 
 // ── WebSocket Live Reload ──
 
-function connectWebSocket() {
+async function connectWebSocket() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${protocol}//${location.host}/ws`);
+  let wsUrl = `${protocol}//${location.host}/ws`;
+
+  // Fetch a one-time auth token — browsers don't send Basic auth on WebSocket upgrade
+  try {
+    const res = await fetch('/api/ws-token', { credentials: 'include' });
+    if (res.ok) {
+      const { token } = await res.json();
+      wsUrl += `?token=${encodeURIComponent(token)}`;
+    }
+  } catch { /* server may not require auth — proceed without token */ }
+
+  const ws = new WebSocket(wsUrl);
   const statusEl = getOrCreateStatus();
 
   ws.addEventListener('open', () => {
@@ -373,7 +384,7 @@ async function enterEditMode() {
   cancelEditBtn.style.display = '';
 
   try {
-    const res = await fetch('/api/raw-content?path=' + encodeURIComponent(currentPath));
+    const res = await fetch('/api/raw-content?path=' + encodeURIComponent(currentPath), { credentials: 'include' });
     if (!res.ok) {
       exitEditMode();
       return;
@@ -425,6 +436,7 @@ async function saveFile() {
     const res = await fetch('/api/file?path=' + encodeURIComponent(currentPath), {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
+      credentials: 'include',
       body: editor.value,
     });
 
@@ -567,7 +579,7 @@ searchInput.addEventListener('input', () => {
 
   searchDebounceTimer = setTimeout(async () => {
     try {
-      const res = await fetch('/api/search?q=' + encodeURIComponent(query));
+      const res = await fetch('/api/search?q=' + encodeURIComponent(query), { credentials: 'include' });
       const data = await res.json();
       // Only render if input hasn't changed
       if (searchInput.value.trim() === query) {
@@ -596,7 +608,7 @@ document.addEventListener('keydown', (e) => {
 async function init() {
   // Fetch config to determine read-only status
   try {
-    const res = await fetch('/api/config');
+    const res = await fetch('/api/config', { credentials: 'include' });
     const config = await res.json();
     isReadOnly = config.readOnly;
   } catch {
