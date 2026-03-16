@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.join(__dirname, 'fixtures');
-const binPath = path.join(__dirname, '..', 'bin', 'mdbrowse.js');
+const binPath = path.join(__dirname, '..', 'bin', 'mdnow.js');
 
 test.describe('Basic Auth', () => {
   let authServer;
