@@ -72,6 +72,7 @@ const MIME_TYPES = {
 
 /**
  * Validate that a requested path stays within the root directory.
+ * Resolves symlinks to prevent traversal via symbolic links.
  * Returns the resolved absolute path or null if invalid.
  */
 function safePath(rootDir, requestedPath) {
@@ -79,8 +80,39 @@ function safePath(rootDir, requestedPath) {
   if (!resolved.startsWith(rootDir + path.sep) && resolved !== rootDir) {
     return null;
   }
-  return resolved;
+  try {
+    const real = fs.realpathSync(resolved);
+    const realRoot = fs.realpathSync(rootDir);
+    if (!real.startsWith(realRoot + path.sep) && real !== realRoot) {
+      return null;
+    }
+    return real;
+  } catch {
+    return resolved; // file may not exist yet
+  }
 }
+
+/**
+ * CSRF check: validate Origin/Referer header on state-changing requests.
+ */
+function csrfCheck(c) {
+  const origin = c.req.header('origin');
+  const referer = c.req.header('referer');
+  const source = origin || referer;
+  if (source) {
+    try {
+      const url = new URL(source);
+      if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1' && !url.hostname.endsWith('.trycloudflare.com')) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
+const MAX_WS_CLIENTS = 100;
 
 export async function startServer({ directory, port, host, respectIgnore, auth, readOnly }) {
   const rootDir = path.resolve(directory);
@@ -91,6 +123,25 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
   }
 
   const app = new Hono();
+
+  // Security headers middleware
+  const CSP = [
+    "default-src 'self'",
+    "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    "img-src 'self' data: https:",
+    "connect-src 'self' ws: wss:",
+    "frame-src 'none'",
+    "object-src 'none'",
+  ].join('; ');
+
+  app.use('*', async (c, next) => {
+    await next();
+    c.header('X-Content-Type-Options', 'nosniff');
+    c.header('X-Frame-Options', 'DENY');
+    c.header('Referrer-Policy', 'no-referrer');
+    c.header('Content-Security-Policy', CSP);
+  });
 
   if (auth) {
     app.use('*', basicAuth({ username: auth.username, password: auth.password }));
@@ -153,6 +204,11 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
       return c.json({ error: 'Read-only mode' }, 403);
     }
 
+    // CSRF protection: validate Origin header
+    if (!csrfCheck(c)) {
+      return c.json({ error: 'Forbidden: invalid origin' }, 403);
+    }
+
     const filePath = c.req.query('path');
     if (!filePath) {
       return c.json({ error: 'Missing path parameter' }, 400);
@@ -173,6 +229,9 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     }
 
     const body = await c.req.text();
+    if (body.length > MAX_FILE_SIZE) {
+      return c.json({ error: 'Request too large' }, 413);
+    }
     await fs.promises.writeFile(absPath, body, 'utf-8');
     return c.json({ ok: true });
   });
@@ -198,6 +257,10 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
 
     if (!stats.isFile()) {
       return c.text('File not found', 404);
+    }
+
+    if (stats.size > MAX_FILE_SIZE) {
+      return c.text('File too large', 413);
     }
 
     const content = fs.readFileSync(absPath, 'utf-8');
@@ -264,8 +327,19 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
       return c.text('Forbidden', 403);
     }
 
-    if (!fs.existsSync(absPath) || !fs.statSync(absPath).isFile()) {
+    let stats;
+    try {
+      stats = fs.statSync(absPath);
+    } catch {
       return c.text('Not found', 404);
+    }
+
+    if (!stats.isFile()) {
+      return c.text('Not found', 404);
+    }
+
+    if (stats.size > MAX_FILE_SIZE) {
+      return c.text('File too large', 413);
     }
 
     const content = fs.readFileSync(absPath);
@@ -303,11 +377,45 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     hostname: host,
   });
 
-  // WebSocket server
-  const wss = new WebSocketServer({ server });
+  // WebSocket server with origin validation
+  const wss = new WebSocketServer({
+    server,
+    verifyClient: (info) => {
+      const origin = info.origin || info.req.headers.origin;
+      if (!origin) return true; // Allow non-browser clients (curl, etc.)
+      try {
+        const url = new URL(origin);
+        return url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.trycloudflare.com');
+      } catch {
+        return false;
+      }
+    }
+  });
 
   const clients = new Set();
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws, req) => {
+    // Authenticate WebSocket connections when auth is enabled
+    if (auth) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Basic ')) {
+        ws.close(1008, 'Unauthorized');
+        return;
+      }
+      const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
+      const [user, ...rest] = decoded.split(':');
+      const pass = rest.join(':');
+      if (user !== auth.username || pass !== auth.password) {
+        ws.close(1008, 'Unauthorized');
+        return;
+      }
+    }
+
+    // Connection limit
+    if (clients.size >= MAX_WS_CLIENTS) {
+      ws.close(1013, 'Too many connections');
+      return;
+    }
+
     clients.add(ws);
     ws.on('close', () => clients.delete(ws));
     ws.on('error', () => clients.delete(ws));

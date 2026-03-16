@@ -77,6 +77,17 @@ program
       readOnly,
     });
 
+    // Security warnings
+    if ((options.tunnel || defaults.tunnel) && !authStr) {
+      console.warn('\n  ⚠ WARNING: Tunnel is public with no authentication.');
+    }
+    if (authStr && host === '0.0.0.0') {
+      console.warn('\n  ⚠ Warning: Basic auth over HTTP transmits credentials in cleartext.');
+    }
+    if (fileConfig.auth) {
+      console.warn('\n  ⚠ Warning: Auth credentials in .mdbrowse.json — use MDBROWSE_AUTH env var instead.');
+    }
+
     const localUrl = `http://localhost:${actualPort}`;
     console.log(`\n  mdbrowse-cli serving ${directory}`);
     console.log(`  → Local:   ${localUrl}`);
@@ -115,14 +126,14 @@ program
     );
 
     if (!isHeadless) {
-      const { exec } = await import('child_process');
+      const { execFile } = await import('child_process');
       const cmd =
         process.platform === 'darwin'
           ? 'open'
           : process.platform === 'win32'
             ? 'start'
             : 'xdg-open';
-      exec(`${cmd} ${localUrl}`);
+      execFile(cmd, [localUrl], () => {});
     }
   });
 
