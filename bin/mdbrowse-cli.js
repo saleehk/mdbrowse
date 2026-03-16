@@ -1,16 +1,40 @@
 #!/usr/bin/env node
 
+import fs from 'fs';
+import path from 'path';
 import { Command } from 'commander';
 import { startServer } from '../src/server.js';
 
-// Environment variable defaults (CLI args always override)
-const env = {
-  port: process.env.MDBROWSE_PORT || '3000',
-  host: process.env.MDBROWSE_HOST || '0.0.0.0',
-  tunnel: process.env.MDBROWSE_TUNNEL === '1',
-  auth: process.env.MDBROWSE_AUTH || null,
-  readOnly: process.env.MDBROWSE_READ_ONLY === '1',
-  noIgnore: process.env.MDBROWSE_NO_IGNORE === '1',
+/**
+ * Load .mdbrowse.json from the target directory.
+ * Returns an empty object if not found or invalid.
+ */
+function loadConfigFile(directory) {
+  const configPath = path.resolve(directory, '.mdbrowse.json');
+  try {
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(raw);
+      return config;
+    }
+  } catch (err) {
+    console.warn(`  Warning: Could not parse .mdbrowse.json — ${err.message}`);
+  }
+  return {};
+}
+
+// Parse directory arg early so we can load config file before commander defaults
+const dirArg = process.argv.find((a, i) => i >= 2 && !a.startsWith('-')) || '.';
+const fileConfig = loadConfigFile(dirArg);
+
+// Priority: CLI args > env vars > .mdbrowse.json > built-in defaults
+const defaults = {
+  port: process.env.MDBROWSE_PORT || fileConfig.port?.toString() || '3000',
+  host: process.env.MDBROWSE_HOST || fileConfig.host || '0.0.0.0',
+  tunnel: process.env.MDBROWSE_TUNNEL === '1' || fileConfig.tunnel === true,
+  auth: process.env.MDBROWSE_AUTH || fileConfig.auth || null,
+  readOnly: process.env.MDBROWSE_READ_ONLY === '1' || fileConfig.readOnly === true,
+  noIgnore: process.env.MDBROWSE_NO_IGNORE === '1' || fileConfig.noIgnore === true,
 };
 
 const program = new Command();
@@ -20,8 +44,8 @@ program
   .description('Browse and preview markdown files in any directory')
   .version('0.2.0')
   .argument('[directory]', 'Directory to serve', '.')
-  .option('-p, --port <number>', 'Port to listen on', env.port)
-  .option('--host <address>', 'Host to bind to', env.host)
+  .option('-p, --port <number>', 'Port to listen on', defaults.port)
+  .option('--host <address>', 'Host to bind to', defaults.host)
   .option('--no-ignore', 'Show all files (ignore .gitignore)')
   .option('--auth <credentials>', 'Require basic auth (user:pass)')
   .option('--read-only', 'Disable file editing')
@@ -29,11 +53,11 @@ program
   .action(async (directory, options) => {
     const port = parseInt(options.port, 10);
     const host = options.host;
-    const respectIgnore = env.noIgnore ? false : options.ignore !== false;
-    const readOnly = options.readOnly || env.readOnly;
+    const respectIgnore = defaults.noIgnore ? false : options.ignore !== false;
+    const readOnly = options.readOnly || defaults.readOnly;
 
     // Auth: CLI arg > env var > none
-    const authStr = options.auth || env.auth;
+    const authStr = options.auth || defaults.auth;
     let auth;
     if (authStr) {
       if (!authStr.includes(':')) {
@@ -70,7 +94,7 @@ program
     }
     console.log();
 
-    if (options.tunnel || env.tunnel) {
+    if (options.tunnel || defaults.tunnel) {
       const { startTunnel, registerCleanup } = await import('../src/tunnel.js');
       try {
         console.log('  Starting Cloudflare Tunnel...');
