@@ -115,6 +115,7 @@ function csrfCheck(c) {
 
 const MAX_WS_CLIENTS = 100;
 const WS_TOKEN_TTL = 30_000; // 30 seconds
+const MAX_WS_TOKENS = 1000;
 
 export async function startServer({ directory, port, host, respectIgnore, auth, readOnly }) {
   const rootDir = path.resolve(directory);
@@ -271,7 +272,7 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
 
   // API: config
   app.get('/api/config', (c) => {
-    return c.json({ readOnly: !!readOnly });
+    return c.json({ readOnly: !!readOnly, auth: !!auth });
   });
 
   // API: one-time WebSocket auth token
@@ -281,6 +282,12 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
   const wsTokens = new Map(); // token -> expiry timestamp
 
   app.get('/api/ws-token', (c) => {
+    if (!auth) {
+      return c.json({ token: null });
+    }
+    if (wsTokens.size >= MAX_WS_TOKENS) {
+      return c.json({ error: 'Too many pending tokens' }, 503);
+    }
     const token = crypto.randomBytes(32).toString('hex');
     wsTokens.set(token, Date.now() + WS_TOKEN_TTL);
     return c.json({ token });
@@ -299,6 +306,15 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     }
     return expiry >= Date.now();
   }
+
+  // Periodic cleanup of expired tokens (every 60s)
+  const tokenCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [t, exp] of wsTokens) {
+      if (exp < now) wsTokens.delete(t);
+    }
+  }, 60_000);
+  tokenCleanupInterval.unref();
 
   // API: search
   app.get('/api/search', async (c) => {
@@ -405,50 +421,52 @@ export async function startServer({ directory, port, host, respectIgnore, auth, 
     hostname: host,
   });
 
-  // WebSocket server with origin validation
+  // WebSocket server with origin validation and auth
   const wss = new WebSocketServer({
     server,
-    verifyClient: (info) => {
+    verifyClient: (info, cb) => {
       const origin = info.origin || info.req.headers.origin;
-      if (!origin) return true; // Allow non-browser clients (curl, etc.)
-      try {
-        const url = new URL(origin);
-        return url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.trycloudflare.com');
-      } catch {
-        return false;
+      if (origin) {
+        try {
+          const url = new URL(origin);
+          if (url.hostname !== 'localhost' && url.hostname !== '127.0.0.1' && !url.hostname.endsWith('.trycloudflare.com')) {
+            return cb(false, 403, 'Forbidden');
+          }
+        } catch {
+          return cb(false, 403, 'Forbidden');
+        }
       }
+
+      if (auth) {
+        const url = new URL(info.req.url, 'http://localhost');
+        const token = url.searchParams.get('token');
+        let authenticated = false;
+
+        if (token && consumeWsToken(token)) {
+          authenticated = true;
+        } else {
+          const authHeader = info.req.headers.authorization;
+          if (authHeader && authHeader.startsWith('Basic ')) {
+            const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
+            const [user, ...rest] = decoded.split(':');
+            const pass = rest.join(':');
+            if (user === auth.username && pass === auth.password) {
+              authenticated = true;
+            }
+          }
+        }
+
+        if (!authenticated) {
+          return cb(false, 401, 'Unauthorized');
+        }
+      }
+
+      cb(true);
     }
   });
 
   const clients = new Set();
   wss.on('connection', (ws, req) => {
-    // Authenticate WebSocket connections when auth is enabled.
-    // Accept either a valid one-time token (query param) or a Basic auth header.
-    if (auth) {
-      const url = new URL(req.url, 'http://localhost');
-      const token = url.searchParams.get('token');
-      let authenticated = false;
-
-      if (token && consumeWsToken(token)) {
-        authenticated = true;
-      } else {
-        const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Basic ')) {
-          const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
-          const [user, ...rest] = decoded.split(':');
-          const pass = rest.join(':');
-          if (user === auth.username && pass === auth.password) {
-            authenticated = true;
-          }
-        }
-      }
-
-      if (!authenticated) {
-        ws.close(1008, 'Unauthorized');
-        return;
-      }
-    }
-
     // Connection limit
     if (clients.size >= MAX_WS_CLIENTS) {
       ws.close(1013, 'Too many connections');

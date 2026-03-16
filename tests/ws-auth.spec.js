@@ -10,8 +10,6 @@ const binPath = path.join(__dirname, '..', 'bin', 'mdbrowse-cli.js');
 
 const AUTH_PORT = 9878;
 const NOAUTH_PORT = 9879;
-const AUTH_BASE = `http://localhost:${AUTH_PORT}`;
-const NOAUTH_BASE = `http://localhost:${NOAUTH_PORT}`;
 const AUTH_CREDS = 'testuser:testpass';
 const AUTH_HEADER = 'Basic ' + Buffer.from(AUTH_CREDS).toString('base64');
 
@@ -49,24 +47,13 @@ function connectWs(port, query = '') {
       reject(new Error('WebSocket connect timeout'));
     }, 5000);
 
-    // The server authenticates inside wss.on('connection'), which fires AFTER
-    // the HTTP upgrade completes. So even for rejected connections the client
-    // sees an 'open' event followed immediately by a 'close(1008)'.
-    // We therefore wait briefly after open to see if the server closes us.
+    // Auth is checked in verifyClient, so rejected connections never open —
+    // the client sees a 'close' event with code 1006 (abnormal closure).
     ws.on('open', () => {
-      const stableTimer = setTimeout(() => {
-        clearTimeout(timeout);
-        resolve({ ws, opened: true });
-      }, 500);
-
-      ws.on('close', (code, reason) => {
-        clearTimeout(stableTimer);
-        clearTimeout(timeout);
-        resolve({ ws, opened: false, code, reason: reason.toString() });
-      });
+      clearTimeout(timeout);
+      resolve({ ws, opened: true });
     });
 
-    // Close before open means the upgrade itself failed
     ws.on('close', (code, reason) => {
       clearTimeout(timeout);
       resolve({ ws, opened: false, code, reason: reason.toString() });
@@ -113,13 +100,13 @@ test.describe('WebSocket Auth', () => {
   test('WebSocket rejected without token when auth enabled', async () => {
     const { opened, code } = await connectWs(AUTH_PORT);
     expect(opened).toBe(false);
-    expect(code).toBe(1008);
+    expect(code).toBe(1006);
   });
 
   test('WebSocket rejected with invalid token', async () => {
     const { opened, code } = await connectWs(AUTH_PORT, 'token=invalidtoken123');
     expect(opened).toBe(false);
-    expect(code).toBe(1008);
+    expect(code).toBe(1006);
   });
 
   test('WebSocket connects without token when no auth', async () => {
@@ -150,6 +137,6 @@ test.describe('WebSocket Auth', () => {
     // Second use of same token — should be rejected
     const second = await connectWs(AUTH_PORT, `token=${token}`);
     expect(second.opened).toBe(false);
-    expect(second.code).toBe(1008);
+    expect(second.code).toBe(1006);
   });
 });

@@ -16,6 +16,7 @@ let editMode = false;
 let dirty = false;
 let searchDebounceTimer = null;
 let searchResultsEl = null;
+let authEnabled = false;
 
 const editBtn = document.getElementById('edit-btn');
 const saveBtn = document.getElementById('save-btn');
@@ -283,19 +284,26 @@ async function connectWebSocket() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   let wsUrl = `${protocol}//${location.host}/ws`;
 
-  // Fetch a one-time auth token — browsers don't send Basic auth on WebSocket upgrade
-  try {
-    const res = await fetch('/api/ws-token', { credentials: 'include' });
-    if (res.ok) {
-      const { token } = await res.json();
-      wsUrl += `?token=${encodeURIComponent(token)}`;
-    }
-  } catch { /* server may not require auth — proceed without token */ }
+  // Fetch a one-time auth token only when auth is enabled
+  // (browsers don't send Basic auth on WebSocket upgrade)
+  if (authEnabled) {
+    try {
+      const res = await fetch('/api/ws-token', { credentials: 'include' });
+      if (res.ok) {
+        const { token } = await res.json();
+        if (token) {
+          wsUrl += `?token=${encodeURIComponent(token)}`;
+        }
+      }
+    } catch { /* proceed without token */ }
+  }
 
   const ws = new WebSocket(wsUrl);
   const statusEl = getOrCreateStatus();
+  let wasOpen = false;
 
   ws.addEventListener('open', () => {
+    wasOpen = true;
     statusEl.textContent = 'Connected';
     statusEl.className = 'ws-status connected visible';
     setTimeout(() => statusEl.classList.remove('visible'), 1500);
@@ -315,14 +323,20 @@ async function connectWebSocket() {
     }
   });
 
-  ws.addEventListener('close', () => {
-    statusEl.textContent = 'Reconnecting…';
+  ws.addEventListener('close', (event) => {
+    // Auth failure — don't auto-reconnect
+    if (event.code === 1008 || (!wasOpen && authEnabled)) {
+      statusEl.textContent = 'Authentication required \u2014 please reload';
+      statusEl.className = 'ws-status visible';
+      return;
+    }
+    statusEl.textContent = 'Reconnecting\u2026';
     statusEl.className = 'ws-status visible';
     setTimeout(connectWebSocket, 2000);
   });
 
   ws.addEventListener('error', () => {
-    ws.close();
+    // Let close handler deal with it
   });
 }
 
@@ -611,6 +625,7 @@ async function init() {
     const res = await fetch('/api/config', { credentials: 'include' });
     const config = await res.json();
     isReadOnly = config.readOnly;
+    authEnabled = !!config.auth;
   } catch {
     isReadOnly = true;
   }
