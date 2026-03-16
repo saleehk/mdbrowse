@@ -25,11 +25,16 @@ npx mdbrowse-cli .
 - **Auth:** optional `--auth user:pass`, works with or without tunnel
 - **UI:** minimal + screenshot-worthy, dark/light auto + toggle
 - **`.gitignore` respected** by default, `--no-ignore` to override
+- **Config file:** `.mdbrowse.json` in served directory for persistent settings
+- **Environment variables:** `MDBROWSE_PORT`, `MDBROWSE_HOST`, `MDBROWSE_TUNNEL`, `MDBROWSE_AUTH`, `MDBROWSE_READ_ONLY`, `MDBROWSE_NO_IGNORE`
+- **Priority chain:** CLI args > env vars > `.mdbrowse.json` > built-in defaults
 
 ## Scope (MVP)
 
 **In scope:**
 - CLI entry point with flags (`--port`, `--host`, `--tunnel`, `--auth`, `--read-only`, `--no-ignore`)
+- `.mdbrowse.json` config file support (auto-detected in served directory)
+- Environment variable defaults (`MDBROWSE_*`)
 - HTTP server (Fastify)
 - File tree sidebar (full directory, all file types)
 - Markdown rendering: GFM, syntax highlighting (shiki), Mermaid, Math/KaTeX, frontmatter, relative images
@@ -97,8 +102,8 @@ npx mdbrowse-cli .
 
 ## Reference Files
 
-- `references/spec.md` — full feature spec
-- `references/plan.md` — engineering plan with phases, slices, and architecture
+- `docs/references/spec.md` — full feature spec
+- `docs/references/plan.md` — engineering plan with phases, slices, and architecture
 
 ## Origin
 

@@ -25,10 +25,10 @@ async function main() {
   await mkdir(screenshotDir, { recursive: true });
   await mkdir(sequenceDir, { recursive: true });
 
-  // Start the server against demo/
+  // Start the server against docs/
   console.log('Starting mdbrowse-cli server on port', PORT);
   const { server } = await startServer({
-    directory: path.join(rootDir, 'demo'),
+    directory: path.join(rootDir, 'docs'),
     port: PORT,
     host: 'localhost',
     respectIgnore: false,

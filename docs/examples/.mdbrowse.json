@@ -1,0 +1,8 @@
+{
+  "port": 4000,
+  "host": "0.0.0.0",
+  "tunnel": false,
+  "auth": "admin:secret",
+  "readOnly": true,
+  "noIgnore": false
+}
