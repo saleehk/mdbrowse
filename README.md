@@ -7,8 +7,7 @@
 
 Zero-install CLI that spins up a local web UI with a file tree, rendered markdown, live reload, and optional Cloudflare Tunnel for remote access.
 
-<!-- TODO: Add screenshot here -->
-<!-- ![mdbrowse screenshot](docs/screenshot.png) -->
+![mdbrowse-cli demo](docs/screenshots/demo.gif)
 
 ## Quick start
 
@@ -21,6 +20,71 @@ npx mdbrowse-cli . --tunnel  # expose via Cloudflare Tunnel
 Opens in your browser automatically. On SSH/headless servers, grab the printed URL.
 
 ## Features
+
+<table>
+<tr>
+<td width="50%">
+
+**File tree + markdown rendering**
+
+Browse files in the sidebar, view beautifully rendered markdown with GFM tables, task lists, and more.
+
+![Light theme](docs/screenshots/hero-light.png)
+
+</td>
+<td width="50%">
+
+**Dark / light theme**
+
+Auto-detects system preference. Toggle with one click.
+
+![Dark theme](docs/screenshots/hero-dark.png)
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Syntax highlighting**
+
+VS Code-quality code blocks via Shiki — JavaScript, Python, Rust, and 100+ languages.
+
+![Code highlighting](docs/screenshots/code-highlight.png)
+
+</td>
+<td width="50%">
+
+**Search**
+
+Filename + content search with Ctrl+K. Results highlighted in context.
+
+![Search](docs/screenshots/search.png)
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**Mermaid diagrams + math**
+
+Flowcharts, sequence diagrams, and LaTeX math rendered inline.
+
+![Mermaid diagrams](docs/screenshots/mermaid.png)
+
+</td>
+<td width="50%">
+
+**Edit mode**
+
+Toggle to edit any file, Ctrl+S to save, with tab indentation support.
+
+![Edit mode](docs/screenshots/edit-mode.png)
+
+</td>
+</tr>
+</table>
+
+**Full feature list:**
 
 - 📁 **File tree sidebar** — browse all files in the directory
 - 📝 **Markdown rendering** — GFM tables, task lists, strikethrough, and more
@@ -54,6 +118,14 @@ Opens in your browser automatically. On SSH/headless servers, grab the printed U
 **AI coding tools** — Using Claude Code, Codex, or similar tools that generate lots of markdown? Browse their output rendered, not raw.
 
 **Documentation browsing** — Point it at your `docs/` folder for a quick local docs site with search, live reload, and edit support.
+
+## Try the demo
+
+```bash
+git clone https://github.com/saleehk/mdbrowse.git
+cd mdbrowse && npm install
+npx mdbrowse-cli demo/
+```
 
 ## Tech stack
 
