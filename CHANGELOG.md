@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/saleehk/mdbrowse/compare/v0.2.0...v0.3.0) (2026-03-16)
+
+
+### Features
+
+* support .mdbrowse.json config file (CLI &gt; env &gt; config &gt; defaults) ([b2e35fe](https://github.com/saleehk/mdbrowse/commit/b2e35fe3cd09f51047be75d8540fd94d3f747e5e))
+* support environment variable defaults (MDBROWSE_PORT, MDBROWSE_HOST, MDBROWSE_TUNNEL, MDBROWSE_AUTH, MDBROWSE_READ_ONLY, MDBROWSE_NO_IGNORE) ([79a117d](https://github.com/saleehk/mdbrowse/commit/79a117dec4ddb73276b86e429e8ef27a4daa00a7))
+
 ## [0.2.0](https://github.com/saleehk/mdbrowse/compare/v0.1.0...v0.2.0) (2026-03-16)
 
 
