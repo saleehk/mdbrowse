@@ -11,7 +11,7 @@ program
   .version('0.1.0')
   .argument('[directory]', 'Directory to serve', '.')
   .option('-p, --port <number>', 'Port to listen on', '3000')
-  .option('--host <address>', 'Host to bind to', 'localhost')
+  .option('--host <address>', 'Host to bind to', '0.0.0.0')
   .option('--no-ignore', 'Show all files (ignore .gitignore)')
   .option('--auth <credentials>', 'Require basic auth (user:pass)')
   .option('--read-only', 'Disable file editing')
@@ -41,9 +41,22 @@ program
       readOnly,
     });
 
-    const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${actualPort}`;
+    const localUrl = `http://localhost:${actualPort}`;
     console.log(`\n  mdbrowse-cli serving ${directory}`);
-    console.log(`  → ${url}\n`);
+    console.log(`  → Local:   ${localUrl}`);
+
+    if (host === '0.0.0.0') {
+      const { networkInterfaces } = await import('os');
+      const nets = networkInterfaces();
+      for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+          if (net.family === 'IPv4' && !net.internal) {
+            console.log(`  → Network: http://${net.address}:${actualPort}`);
+          }
+        }
+      }
+    }
+    console.log();
 
     if (options.tunnel) {
       const { startTunnel, registerCleanup } = await import('../src/tunnel.js');
@@ -73,7 +86,7 @@ program
           : process.platform === 'win32'
             ? 'start'
             : 'xdg-open';
-      exec(`${cmd} ${url}`);
+      exec(`${cmd} ${localUrl}`);
     }
   });
 
