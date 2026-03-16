@@ -3,15 +3,25 @@
 import { Command } from 'commander';
 import { startServer } from '../src/server.js';
 
+// Environment variable defaults (CLI args always override)
+const env = {
+  port: process.env.MDBROWSE_PORT || '3000',
+  host: process.env.MDBROWSE_HOST || '0.0.0.0',
+  tunnel: process.env.MDBROWSE_TUNNEL === '1',
+  auth: process.env.MDBROWSE_AUTH || null,
+  readOnly: process.env.MDBROWSE_READ_ONLY === '1',
+  noIgnore: process.env.MDBROWSE_NO_IGNORE === '1',
+};
+
 const program = new Command();
 
 program
   .name('mdbrowse-cli')
   .description('Browse and preview markdown files in any directory')
-  .version('0.1.0')
+  .version('0.2.0')
   .argument('[directory]', 'Directory to serve', '.')
-  .option('-p, --port <number>', 'Port to listen on', '3000')
-  .option('--host <address>', 'Host to bind to', '0.0.0.0')
+  .option('-p, --port <number>', 'Port to listen on', env.port)
+  .option('--host <address>', 'Host to bind to', env.host)
   .option('--no-ignore', 'Show all files (ignore .gitignore)')
   .option('--auth <credentials>', 'Require basic auth (user:pass)')
   .option('--read-only', 'Disable file editing')
@@ -19,16 +29,18 @@ program
   .action(async (directory, options) => {
     const port = parseInt(options.port, 10);
     const host = options.host;
-    const respectIgnore = options.ignore !== false;
-    const readOnly = !!options.readOnly;
+    const respectIgnore = env.noIgnore ? false : options.ignore !== false;
+    const readOnly = options.readOnly || env.readOnly;
 
+    // Auth: CLI arg > env var > none
+    const authStr = options.auth || env.auth;
     let auth;
-    if (options.auth) {
-      if (!options.auth.includes(':')) {
-        console.error('Error: --auth must be in user:pass format');
+    if (authStr) {
+      if (!authStr.includes(':')) {
+        console.error('Error: --auth (or MDBROWSE_AUTH) must be in user:pass format');
         process.exit(1);
       }
-      const [user, ...rest] = options.auth.split(':');
+      const [user, ...rest] = authStr.split(':');
       auth = { username: user, password: rest.join(':') };
     }
 
@@ -58,7 +70,7 @@ program
     }
     console.log();
 
-    if (options.tunnel) {
+    if (options.tunnel || env.tunnel) {
       const { startTunnel, registerCleanup } = await import('../src/tunnel.js');
       try {
         console.log('  Starting Cloudflare Tunnel...');
