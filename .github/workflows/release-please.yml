@@ -43,7 +43,6 @@ jobs:
     needs: [release-please, test]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
-    environment: release
     permissions:
       contents: read
       id-token: write
