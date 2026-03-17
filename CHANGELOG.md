@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/saleehk/mdbrowse/compare/v0.3.0...v0.4.0) (2026-03-17)
+
+
+### Features
+
+* replace basic auth with token auth + deep link support ([77c97df](https://github.com/saleehk/mdbrowse/commit/77c97dfaa053c2d81934fb52919939b6888e3bfc))
+* token auth + deep links (replaces basic auth) ([f93ebd6](https://github.com/saleehk/mdbrowse/commit/f93ebd637926fdc40acabc15d52d28ce453e27d3))
+
 ## [0.3.0](https://github.com/saleehk/mdbrowse/compare/v0.2.0...v0.3.0) (2026-03-16)
 
 
