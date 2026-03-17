@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/saleehk/mdbrowse/compare/v0.4.0...v0.4.1) (2026-03-17)
+
+
+### Bug Fixes
+
+* **ci:** remove environment from publish job to match npm trusted publisher config ([f2d2e54](https://github.com/saleehk/mdbrowse/commit/f2d2e54f09bac72a70e9adfffba3eeac8c26ac03))
+
 ## [0.4.0](https://github.com/saleehk/mdbrowse/compare/v0.3.0...v0.4.0) (2026-03-17)
 
 
