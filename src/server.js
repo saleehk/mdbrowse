@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import net from 'net';
 import path from 'path';
@@ -9,6 +10,12 @@ import { scanDirectory } from './scanner.js';
 import { renderMarkdown, renderCode } from './renderer.js';
 import { startWatcher } from './watcher.js';
 import { search } from './search.js';
+
+function safeTokenCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, '..', 'public');
@@ -252,13 +259,13 @@ export async function startServer({ directory, port, host, respectIgnore, token,
 
       // Check Authorization: Bearer <token>
       const authHeader = c.req.header('authorization');
-      if (authHeader?.startsWith('Bearer ') && authHeader.slice(7) === token) {
+      if (authHeader?.startsWith('Bearer ') && safeTokenCompare(authHeader.slice(7), token)) {
         return next();
       }
 
       // Check ?token= query param (for deep links and WebSocket)
       const queryToken = c.req.query('token');
-      if (queryToken === token) {
+      if (safeTokenCompare(queryToken, token)) {
         return next();
       }
 
@@ -281,7 +288,7 @@ export async function startServer({ directory, port, host, respectIgnore, token,
       return c.json({ ok: true });
     }
     const body = await c.req.json();
-    if (body.token === token) {
+    if (safeTokenCompare(body.token, token)) {
       return c.json({ ok: true });
     }
     return c.json({ error: 'Invalid token' }, 401);
@@ -537,7 +544,7 @@ export async function startServer({ directory, port, host, respectIgnore, token,
       if (token) {
         const url = new URL(info.req.url, 'http://localhost');
         const queryToken = url.searchParams.get('token');
-        return queryToken === token;
+        return safeTokenCompare(queryToken, token);
       }
       return true;
     }
