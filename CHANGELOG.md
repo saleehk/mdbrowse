@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/saleehk/mdbrowse/compare/v0.4.2...v0.4.3) (2026-03-17)
+
+
+### Bug Fixes
+
+* **ci:** switch to NPM_TOKEN for publishing ([d981695](https://github.com/saleehk/mdbrowse/commit/d9816955e0621f5a486e8660a39fab9cdd21cced))
+
 ## [0.4.2](https://github.com/saleehk/mdbrowse/compare/v0.4.1...v0.4.2) (2026-03-17)
 
 
