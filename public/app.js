@@ -1,5 +1,39 @@
 /* ── mdbrowse-cli client ── */
 
+// ── Token handling (before anything else) ──
+
+(function handleTokenFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const urlToken = params.get('token');
+  if (urlToken) {
+    localStorage.setItem('mdbrowse-token', urlToken);
+    // Clean URL: remove token param, keep others
+    params.delete('token');
+    const clean = params.toString();
+    const newUrl = location.pathname + (clean ? '?' + clean : '') + location.hash;
+    history.replaceState(null, '', newUrl);
+  }
+})();
+
+function authHeaders() {
+  const token = localStorage.getItem('mdbrowse-token');
+  if (token) {
+    return { 'Authorization': `Bearer ${token}` };
+  }
+  return {};
+}
+
+function authFetch(url, options = {}) {
+  const headers = { ...authHeaders(), ...(options.headers || {}) };
+  return fetch(url, { ...options, headers }).then(res => {
+    if (res.status === 401) {
+      localStorage.removeItem('mdbrowse-token');
+      window.location.href = '/login';
+    }
+    return res;
+  });
+}
+
 const fileTreeEl = document.getElementById('file-tree');
 const contentInner = document.getElementById('content-inner');
 const themeToggle = document.getElementById('theme-toggle');
@@ -12,6 +46,7 @@ const searchClear = document.getElementById('search-clear');
 let currentPath = null;
 let treeData = null;
 let isReadOnly = true;
+let isAuthEnabled = false;
 let editMode = false;
 let dirty = false;
 let searchDebounceTimer = null;
@@ -20,6 +55,7 @@ let searchResultsEl = null;
 const editBtn = document.getElementById('edit-btn');
 const saveBtn = document.getElementById('save-btn');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
+const logoutBtn = document.getElementById('logout-btn');
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp']);
 
@@ -73,7 +109,8 @@ document.getElementById('content').addEventListener('click', () => toggleSidebar
 // ── File Tree ──
 
 async function fetchTree() {
-  const res = await fetch('/api/tree');
+  const res = await authFetch('/api/tree');
+  if (!res.ok) return;
   treeData = await res.json();
   renderTree(treeData);
 }
@@ -183,7 +220,7 @@ async function loadFile(filePath) {
   }
 
   try {
-    const res = await fetch('/api/file?path=' + encodeURIComponent(filePath));
+    const res = await authFetch('/api/file?path=' + encodeURIComponent(filePath));
     if (!res.ok) {
       contentInner.innerHTML = `<div class="welcome"><h2>Error</h2><p>Could not load file: ${escapeHtml(filePath)}</p></div>`;
       return;
@@ -281,7 +318,9 @@ function showWelcome() {
 
 function connectWebSocket() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${protocol}//${location.host}/ws`);
+  const token = localStorage.getItem('mdbrowse-token');
+  const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+  const ws = new WebSocket(`${protocol}//${location.host}/ws${tokenParam}`);
   const statusEl = getOrCreateStatus();
 
   ws.addEventListener('open', () => {
@@ -373,7 +412,7 @@ async function enterEditMode() {
   cancelEditBtn.style.display = '';
 
   try {
-    const res = await fetch('/api/raw-content?path=' + encodeURIComponent(currentPath));
+    const res = await authFetch('/api/raw-content?path=' + encodeURIComponent(currentPath));
     if (!res.ok) {
       exitEditMode();
       return;
@@ -422,7 +461,7 @@ async function saveFile() {
   saveBtn.textContent = '⏳ Saving…';
 
   try {
-    const res = await fetch('/api/file?path=' + encodeURIComponent(currentPath), {
+    const res = await authFetch('/api/file?path=' + encodeURIComponent(currentPath), {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: editor.value,
@@ -482,6 +521,15 @@ document.addEventListener('keydown', (e) => {
 window.addEventListener('beforeunload', (e) => {
   if (dirty) e.preventDefault();
 });
+
+// ── Logout ──
+
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('mdbrowse-token');
+    window.location.href = '/login';
+  });
+}
 
 // ── Search ──
 
@@ -567,7 +615,8 @@ searchInput.addEventListener('input', () => {
 
   searchDebounceTimer = setTimeout(async () => {
     try {
-      const res = await fetch('/api/search?q=' + encodeURIComponent(query));
+      const res = await authFetch('/api/search?q=' + encodeURIComponent(query));
+      if (!res.ok) return;
       const data = await res.json();
       // Only render if input hasn't changed
       if (searchInput.value.trim() === query) {
@@ -594,13 +643,20 @@ document.addEventListener('keydown', (e) => {
 // ── Init ──
 
 async function init() {
-  // Fetch config to determine read-only status
+  // Fetch config to determine read-only status and auth
   try {
-    const res = await fetch('/api/config');
+    const res = await authFetch('/api/config');
+    if (!res.ok) return;
     const config = await res.json();
     isReadOnly = config.readOnly;
+    isAuthEnabled = config.auth;
   } catch {
     isReadOnly = true;
+  }
+
+  // Show/hide logout button based on auth state
+  if (logoutBtn) {
+    logoutBtn.style.display = isAuthEnabled ? '' : 'none';
   }
 
   await fetchTree();
