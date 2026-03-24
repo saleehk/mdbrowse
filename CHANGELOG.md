@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/saleehk/mdbrowse/compare/v0.5.0...v0.5.1) (2026-03-24)
+
+
+### Bug Fixes
+
+* diagram fullscreen modal + e2e test fixes ([#15](https://github.com/saleehk/mdbrowse/issues/15)) ([005cac0](https://github.com/saleehk/mdbrowse/commit/005cac04efc544e288224e163bd91068c03175ed))
+
 ## [0.5.0](https://github.com/saleehk/mdbrowse/compare/v0.4.3...v0.5.0) (2026-03-24)
 
 
