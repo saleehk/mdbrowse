@@ -7,7 +7,7 @@
 
 Zero-install CLI that spins up a local web UI with a file tree, rendered markdown, live reload, and optional Cloudflare Tunnel for remote access.
 
-![mdbrowse-cli demo](docs/screenshots/demo.gif)
+![mdbrowse-cli demo](https://raw.githubusercontent.com/saleehk/mdbrowse/main/docs/screenshots/demo.gif)
 
 ## Quick start
 
@@ -29,7 +29,7 @@ Opens in your browser automatically. On SSH/headless servers, grab the printed U
 
 Browse files in the sidebar, view beautifully rendered markdown with GFM tables, task lists, and more.
 
-![Light theme](docs/screenshots/hero-light.png)
+![Light theme](https://raw.githubusercontent.com/saleehk/mdbrowse/main/docs/screenshots/hero-light.png)
 
 </td>
 <td width="50%">
@@ -38,7 +38,7 @@ Browse files in the sidebar, view beautifully rendered markdown with GFM tables,
 
 Auto-detects system preference. Toggle with one click.
 
-![Dark theme](docs/screenshots/hero-dark.png)
+![Dark theme](https://raw.githubusercontent.com/saleehk/mdbrowse/main/docs/screenshots/hero-dark.png)
 
 </td>
 </tr>
@@ -49,7 +49,7 @@ Auto-detects system preference. Toggle with one click.
 
 VS Code-quality code blocks via Shiki — JavaScript, Python, Rust, and 100+ languages.
 
-![Code highlighting](docs/screenshots/code-highlight.png)
+![Code highlighting](https://raw.githubusercontent.com/saleehk/mdbrowse/main/docs/screenshots/code-highlight.png)
 
 </td>
 <td width="50%">
@@ -58,7 +58,7 @@ VS Code-quality code blocks via Shiki — JavaScript, Python, Rust, and 100+ lan
 
 Filename + content search with Ctrl+K. Results highlighted in context.
 
-![Search](docs/screenshots/search.png)
+![Search](https://raw.githubusercontent.com/saleehk/mdbrowse/main/docs/screenshots/search.png)
 
 </td>
 </tr>
@@ -69,7 +69,7 @@ Filename + content search with Ctrl+K. Results highlighted in context.
 
 Flowcharts, sequence diagrams, and LaTeX math rendered inline.
 
-![Mermaid diagrams](docs/screenshots/mermaid.png)
+![Mermaid diagrams](https://raw.githubusercontent.com/saleehk/mdbrowse/main/docs/screenshots/mermaid.png)
 
 </td>
 <td width="50%">
@@ -78,7 +78,7 @@ Flowcharts, sequence diagrams, and LaTeX math rendered inline.
 
 Toggle to edit any file, Ctrl+S to save, with tab indentation support.
 
-![Edit mode](docs/screenshots/edit-mode.png)
+![Edit mode](https://raw.githubusercontent.com/saleehk/mdbrowse/main/docs/screenshots/edit-mode.png)
 
 </td>
 </tr>
