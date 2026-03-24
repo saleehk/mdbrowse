@@ -106,6 +106,33 @@ sidebarBackdrop.addEventListener('click', () => toggleSidebar(false));
 // Close sidebar when clicking content on mobile
 document.getElementById('content').addEventListener('click', () => toggleSidebar(false));
 
+// ── Sidebar Collapse (desktop) ──
+
+const sidebarCollapseBtn = document.getElementById('sidebar-collapse-btn');
+const appEl = document.getElementById('app');
+
+function setSidebarCollapsed(collapsed) {
+  appEl.classList.toggle('sidebar-collapsed', collapsed);
+  localStorage.setItem('mdbrowse-sidebar', collapsed ? 'collapsed' : 'expanded');
+}
+
+// Restore sidebar state from localStorage
+if (localStorage.getItem('mdbrowse-sidebar') === 'collapsed') {
+  appEl.classList.add('sidebar-collapsed');
+}
+
+sidebarCollapseBtn.addEventListener('click', () => {
+  setSidebarCollapsed(!appEl.classList.contains('sidebar-collapsed'));
+});
+
+// Ctrl+B: toggle sidebar collapse
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+    e.preventDefault();
+    setSidebarCollapsed(!appEl.classList.contains('sidebar-collapsed'));
+  }
+});
+
 // ── File Tree ──
 
 async function fetchTree() {
@@ -253,11 +280,30 @@ function renderFile(filePath, data) {
   // Initialize mermaid diagrams
   initMermaid();
 
+  // Add copy buttons to code blocks
+  initCodeCopyButtons();
+
+  // Build Table of Contents for markdown content
+  initTableOfContents();
+
+  // Set up heading anchor click handling
+  initHeadingAnchors();
+
   // Show edit button if applicable
   showEditButton();
 
-  // Scroll to top
-  document.getElementById('content').scrollTop = 0;
+  // Scroll to hash or top
+  const contentEl = document.getElementById('content');
+  if (location.hash) {
+    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (target) {
+      setTimeout(() => target.scrollIntoView({ behavior: 'smooth' }), 100);
+    } else {
+      contentEl.scrollTop = 0;
+    }
+  } else {
+    contentEl.scrollTop = 0;
+  }
 }
 
 function initMermaid() {
@@ -281,10 +327,45 @@ function initMermaid() {
 
   blocks.forEach((block, i) => {
     const pre = block.closest('pre') || block;
-    const container = document.createElement('div');
-    container.className = 'mermaid';
-    container.textContent = block.textContent;
-    pre.replaceWith(container);
+    const mermaidSource = block.textContent;
+
+    // Create diagram container with toolbar
+    const wrapper = document.createElement('div');
+    wrapper.className = 'diagram-container';
+    wrapper.dataset.mermaidSource = mermaidSource;
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'diagram-toolbar';
+
+    const fullscreenBtn = document.createElement('button');
+    fullscreenBtn.textContent = '⛶ Fullscreen';
+    fullscreenBtn.title = 'View fullscreen';
+    fullscreenBtn.addEventListener('click', () => openDiagramModal(wrapper));
+
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy';
+    copyBtn.title = 'Copy Mermaid source';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(mermaidSource).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+
+    toolbar.appendChild(fullscreenBtn);
+    toolbar.appendChild(copyBtn);
+
+    const mermaidDiv = document.createElement('div');
+    mermaidDiv.className = 'mermaid';
+    mermaidDiv.textContent = mermaidSource;
+
+    wrapper.appendChild(toolbar);
+    wrapper.appendChild(mermaidDiv);
+    pre.replaceWith(wrapper);
   });
 
   mermaid.run();
@@ -631,12 +712,236 @@ searchClear.addEventListener('click', () => {
   searchInput.focus();
 });
 
-// Ctrl+K / Cmd+K to focus search
+// Ctrl+K / Cmd+K to focus search (auto-expand sidebar if collapsed)
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault();
+    if (appEl.classList.contains('sidebar-collapsed')) {
+      setSidebarCollapsed(false);
+    }
     searchInput.focus();
     searchInput.select();
+  }
+});
+
+// ── Code Block Copy Buttons ──
+
+function initCodeCopyButtons() {
+  const preBlocks = contentInner.querySelectorAll('pre');
+  preBlocks.forEach((pre) => {
+    // Skip if already wrapped
+    if (pre.parentElement?.classList.contains('code-block-wrapper')) return;
+    // Skip mermaid blocks
+    if (pre.querySelector('code.language-mermaid')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-block-wrapper';
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(pre);
+
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      const code = pre.querySelector('code');
+      const text = code ? code.textContent : pre.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+    wrapper.appendChild(btn);
+  });
+}
+
+// ── Heading Anchors (client-side click handling) ──
+
+function initHeadingAnchors() {
+  contentInner.querySelectorAll('.heading-anchor').forEach((anchor) => {
+    anchor.addEventListener('click', (e) => {
+      e.preventDefault();
+      const hash = anchor.getAttribute('href');
+      history.replaceState(null, '', location.pathname + hash);
+      const target = document.getElementById(hash.slice(1));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+}
+
+// ── Table of Contents ──
+
+const tocBtn = document.getElementById('toc-btn');
+const tocPanel = document.getElementById('toc-panel');
+const tocList = document.getElementById('toc-list');
+const tocClose = document.getElementById('toc-close');
+let tocObserver = null;
+
+function initTableOfContents() {
+  // Clean up previous observer
+  if (tocObserver) {
+    tocObserver.disconnect();
+    tocObserver = null;
+  }
+  tocList.innerHTML = '';
+  tocBtn.style.display = 'none';
+  tocPanel.style.display = 'none';
+
+  const headings = contentInner.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
+  if (headings.length < 2) return;
+
+  tocBtn.style.display = '';
+
+  headings.forEach((heading) => {
+    const entry = document.createElement('a');
+    entry.className = 'toc-entry';
+    entry.dataset.level = heading.tagName[1];
+    entry.dataset.target = heading.id;
+    entry.textContent = heading.textContent.trim();
+    entry.addEventListener('click', (e) => {
+      e.preventDefault();
+      history.replaceState(null, '', location.pathname + '#' + heading.id);
+      heading.scrollIntoView({ behavior: 'smooth' });
+      tocPanel.style.display = 'none';
+    });
+    tocList.appendChild(entry);
+  });
+
+  // Intersection observer to highlight current heading
+  tocObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          tocList.querySelectorAll('.toc-entry.active').forEach((el) => el.classList.remove('active'));
+          const tocEntry = tocList.querySelector(`.toc-entry[data-target="${entry.target.id}"]`);
+          if (tocEntry) tocEntry.classList.add('active');
+        }
+      });
+    },
+    { rootMargin: '0px 0px -70% 0px', threshold: 0.1 }
+  );
+
+  headings.forEach((heading) => tocObserver.observe(heading));
+}
+
+tocBtn.addEventListener('click', () => {
+  const isVisible = tocPanel.style.display !== 'none';
+  tocPanel.style.display = isVisible ? 'none' : '';
+});
+
+tocClose.addEventListener('click', () => {
+  tocPanel.style.display = 'none';
+});
+
+// Close ToC when clicking outside
+document.addEventListener('click', (e) => {
+  if (tocPanel.style.display !== 'none' && !tocPanel.contains(e.target) && e.target !== tocBtn) {
+    tocPanel.style.display = 'none';
+  }
+});
+
+// ── Diagram Fullscreen Modal ──
+
+const diagramModal = document.getElementById('diagram-modal');
+const diagramModalSvg = document.getElementById('diagram-modal-svg');
+let diagramZoom = 1;
+let diagramPanX = 0;
+let diagramPanY = 0;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+function openDiagramModal(container) {
+  const svgEl = container.querySelector('svg');
+  if (!svgEl) return;
+  diagramModalSvg.innerHTML = svgEl.outerHTML;
+  diagramZoom = 1;
+  diagramPanX = 0;
+  diagramPanY = 0;
+  updateDiagramTransform();
+  diagramModal.style.display = '';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDiagramModal() {
+  diagramModal.style.display = 'none';
+  diagramModalSvg.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function updateDiagramTransform() {
+  diagramModalSvg.style.transform = `scale(${diagramZoom}) translate(${diagramPanX}px, ${diagramPanY}px)`;
+}
+
+// Modal close
+diagramModal.querySelector('.diagram-modal-backdrop').addEventListener('click', closeDiagramModal);
+diagramModal.querySelector('.diagram-modal-close').addEventListener('click', closeDiagramModal);
+
+// Zoom buttons
+diagramModal.querySelectorAll('.diagram-zoom-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const action = btn.dataset.action;
+    if (action === 'zoom-in') {
+      diagramZoom = Math.min(5, diagramZoom * 1.3);
+    } else if (action === 'zoom-out') {
+      diagramZoom = Math.max(0.5, diagramZoom / 1.3);
+    } else if (action === 'zoom-reset') {
+      diagramZoom = 1;
+      diagramPanX = 0;
+      diagramPanY = 0;
+    }
+    updateDiagramTransform();
+  });
+});
+
+// Mouse wheel zoom
+diagramModal.querySelector('.diagram-modal-viewport').addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  diagramZoom = Math.max(0.5, Math.min(5, diagramZoom * delta));
+  updateDiagramTransform();
+}, { passive: false });
+
+// Drag to pan
+const viewport = diagramModal.querySelector('.diagram-modal-viewport');
+viewport.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = (e.clientX - dragStartX) / diagramZoom;
+  const dy = (e.clientY - dragStartY) / diagramZoom;
+  diagramPanX += dx;
+  diagramPanY += dy;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  updateDiagramTransform();
+});
+
+window.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+// Double-click to reset zoom/pan
+viewport.addEventListener('dblclick', () => {
+  diagramZoom = 1;
+  diagramPanX = 0;
+  diagramPanY = 0;
+  updateDiagramTransform();
+});
+
+// Esc to close modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && diagramModal.style.display !== 'none') {
+    closeDiagramModal();
   }
 });
 

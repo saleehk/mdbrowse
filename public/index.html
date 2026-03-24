@@ -31,9 +31,17 @@
     </aside>
     <main id="content">
       <div id="content-toolbar">
+        <button id="toc-btn" title="Table of Contents" style="display:none">📑 ToC</button>
         <button id="edit-btn" title="Edit file" style="display:none">✏️ Edit</button>
         <button id="save-btn" title="Save file" style="display:none">💾 Save</button>
         <button id="cancel-edit-btn" title="Cancel editing" style="display:none">✖ Cancel</button>
+      </div>
+      <div id="toc-panel" style="display:none">
+        <div class="toc-header">
+          <span>Table of Contents</span>
+          <button id="toc-close" title="Close">✕</button>
+        </div>
+        <nav id="toc-list"></nav>
       </div>
       <div id="content-inner">
         <div id="welcome">
@@ -46,6 +54,24 @@
   <button id="sidebar-toggle" title="Toggle sidebar" aria-label="Toggle sidebar">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
+  <button id="sidebar-collapse-btn" title="Collapse sidebar (Ctrl+B)" aria-label="Collapse sidebar">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <!-- Diagram fullscreen modal -->
+  <div id="diagram-modal" style="display:none">
+    <div class="diagram-modal-backdrop"></div>
+    <div class="diagram-modal-content">
+      <div class="diagram-modal-toolbar">
+        <button class="diagram-zoom-btn" data-action="zoom-in" title="Zoom in">+</button>
+        <button class="diagram-zoom-btn" data-action="zoom-out" title="Zoom out">−</button>
+        <button class="diagram-zoom-btn" data-action="zoom-reset" title="Reset zoom">⟲</button>
+        <button class="diagram-modal-close" title="Close (Esc)">✕</button>
+      </div>
+      <div class="diagram-modal-viewport">
+        <div id="diagram-modal-svg"></div>
+      </div>
+    </div>
+  </div>
   <script src="/assets/app.js"></script>
 </body>
 </html>
