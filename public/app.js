@@ -40,6 +40,20 @@ const themeToggle = document.getElementById('theme-toggle');
 const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebar = document.getElementById('sidebar');
 
+const ICON_HAMBURGER = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+const ICON_ARROW_LEFT = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+const ICON_CLOSE = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+// Tree SVG icons
+const ICON_CHEVRON = '<svg class="tree-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2l4 4-4 4"/></svg>';
+const ICON_FOLDER_CLOSED = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h4l2 2h6v7H2V4z"/></svg>';
+const ICON_FOLDER_OPEN = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h4l2 2h6v1l-2 6H2V4z"/></svg>';
+const ICON_FILE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h5l4 4v9H4V1z"/><path d="M9 1v4h4"/></svg>';
+const ICON_FILE_MD = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h5l4 4v9H4V1z"/><path d="M9 1v4h4"/><path d="M6 9l1.5-2L9 9" stroke-width="1.2"/></svg>';
+const ICON_FILE_CODE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h5l4 4v9H4V1z"/><path d="M9 1v4h4"/><path d="M6.5 8l-1.5 1.5 1.5 1.5M9.5 8l1.5 1.5-1.5 1.5"/></svg>';
+const ICON_FILE_IMAGE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="1"/><circle cx="5.5" cy="5.5" r="1"/><path d="M2 11l3-3 2 2 3-3 4 4"/></svg>';
+const ICON_FILE_CONFIG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h5l4 4v9H4V1z"/><path d="M9 1v4h4"/><circle cx="8" cy="9.5" r="1.5"/><path d="M8 8V7M8 12v-1"/></svg>';
+
 const searchInput = document.getElementById('search-input');
 const searchClear = document.getElementById('search-clear');
 
@@ -94,17 +108,70 @@ const sidebarBackdrop = document.createElement('div');
 sidebarBackdrop.className = 'sidebar-backdrop';
 document.body.appendChild(sidebarBackdrop);
 
+function updateToggleIcon() {
+  if (window.innerWidth <= 768) {
+    sidebarToggle.innerHTML = sidebar.classList.contains('open') ? ICON_CLOSE : ICON_HAMBURGER;
+  } else {
+    sidebarToggle.innerHTML = appEl.classList.contains('sidebar-collapsed') ? ICON_HAMBURGER : ICON_ARROW_LEFT;
+  }
+}
+
 function toggleSidebar(open) {
   const isOpen = open !== undefined ? open : !sidebar.classList.contains('open');
   sidebar.classList.toggle('open', isOpen);
   sidebarBackdrop.classList.toggle('visible', isOpen);
+  updateToggleIcon();
 }
 
-sidebarToggle.addEventListener('click', () => toggleSidebar());
+sidebarToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (window.innerWidth <= 768) {
+    toggleSidebar();
+  } else {
+    setSidebarCollapsed(!appEl.classList.contains('sidebar-collapsed'));
+  }
+});
 sidebarBackdrop.addEventListener('click', () => toggleSidebar(false));
 
 // Close sidebar when clicking content on mobile
-document.getElementById('content').addEventListener('click', () => toggleSidebar(false));
+document.getElementById('content').addEventListener('click', (e) => {
+  if (window.innerWidth <= 768 && e.target !== sidebarToggle && !sidebarToggle.contains(e.target)) {
+    toggleSidebar(false);
+  }
+});
+
+// ── Sidebar Collapse (desktop) ──
+
+const sidebarCollapseBtn = document.getElementById('sidebar-collapse-btn');
+const appEl = document.getElementById('app');
+
+function setSidebarCollapsed(collapsed) {
+  appEl.classList.toggle('sidebar-collapsed', collapsed);
+  localStorage.setItem('mdbrowse-sidebar', collapsed ? 'collapsed' : 'expanded');
+  updateToggleIcon();
+}
+
+// Restore sidebar state from localStorage
+if (localStorage.getItem('mdbrowse-sidebar') === 'collapsed') {
+  appEl.classList.add('sidebar-collapsed');
+}
+
+updateToggleIcon();
+window.addEventListener('resize', updateToggleIcon);
+
+if (sidebarCollapseBtn) {
+  sidebarCollapseBtn.addEventListener('click', () => {
+    setSidebarCollapsed(!appEl.classList.contains('sidebar-collapsed'));
+  });
+}
+
+// Ctrl+B: toggle sidebar collapse
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+    e.preventDefault();
+    setSidebarCollapsed(!appEl.classList.contains('sidebar-collapsed'));
+  }
+});
 
 // ── File Tree ──
 
@@ -115,18 +182,18 @@ async function fetchTree() {
   renderTree(treeData);
 }
 
+const CODE_EXTS = new Set(['js','ts','mjs','cjs','jsx','tsx','py','rb','go','rs','java','c','cpp','cs','php','swift','kt','sh','bash','zsh','lua','r','scala','hs','ex','exs','zig','html','css']);
+const IMAGE_EXTS = new Set(['png','jpg','jpeg','gif','webp','svg','ico','bmp']);
+const CONFIG_EXTS = new Set(['json','yaml','yml','toml','env','xml','ini','cfg']);
+const MD_EXTS = new Set(['md','mdx']);
+
 function fileIcon(name) {
   const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
-  const icons = {
-    md: '📄', mdx: '📄',
-    js: '📜', ts: '📜', mjs: '📜', cjs: '📜', jsx: '📜', tsx: '📜',
-    py: '🐍', rb: '💎', go: '🔵', rs: '🦀',
-    json: '{}', yaml: '⚙️', yml: '⚙️', toml: '⚙️',
-    html: '🌐', css: '🎨', svg: '🖼️',
-    sh: '⌨️', bash: '⌨️', zsh: '⌨️',
-    png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️', webp: '🖼️',
-  };
-  return icons[ext] || '📄';
+  if (MD_EXTS.has(ext)) return ICON_FILE_MD;
+  if (CODE_EXTS.has(ext)) return ICON_FILE_CODE;
+  if (IMAGE_EXTS.has(ext)) return ICON_FILE_IMAGE;
+  if (CONFIG_EXTS.has(ext)) return ICON_FILE_CONFIG;
+  return ICON_FILE;
 }
 
 function renderTree(nodes, container, depth = 0) {
@@ -141,21 +208,23 @@ function renderTree(nodes, container, depth = 0) {
       dirEl.className = 'tree-dir-group';
 
       const item = document.createElement('div');
-      item.className = 'tree-item tree-dir';
+      item.className = 'tree-item tree-dir collapsed';
       item.style.setProperty('--depth', depth);
       item.innerHTML = `
-        <span class="tree-icon tree-chevron">▾</span>
-        <span class="tree-icon">📁</span>
+        <span class="tree-icon">${ICON_CHEVRON}</span>
+        <span class="tree-icon tree-folder-icon">${ICON_FOLDER_CLOSED}</span>
         <span class="tree-name">${escapeHtml(node.name)}</span>
       `;
 
       const children = document.createElement('div');
-      children.className = 'tree-children';
+      children.className = 'tree-children hidden';
 
       item.addEventListener('click', (e) => {
         e.stopPropagation();
-        item.classList.toggle('collapsed');
+        const isCollapsed = item.classList.toggle('collapsed');
         children.classList.toggle('hidden');
+        const folderIcon = item.querySelector('.tree-folder-icon');
+        if (folderIcon) folderIcon.innerHTML = isCollapsed ? ICON_FOLDER_CLOSED : ICON_FOLDER_OPEN;
       });
 
       dirEl.appendChild(item);
@@ -253,11 +322,30 @@ function renderFile(filePath, data) {
   // Initialize mermaid diagrams
   initMermaid();
 
+  // Add copy buttons to code blocks
+  initCodeCopyButtons();
+
+  // Build Table of Contents for markdown content
+  initTableOfContents();
+
+  // Set up heading anchor click handling
+  initHeadingAnchors();
+
   // Show edit button if applicable
   showEditButton();
 
-  // Scroll to top
-  document.getElementById('content').scrollTop = 0;
+  // Scroll to hash or top
+  const contentEl = document.getElementById('content');
+  if (location.hash) {
+    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (target) {
+      setTimeout(() => target.scrollIntoView({ behavior: 'smooth' }), 100);
+    } else {
+      contentEl.scrollTop = 0;
+    }
+  } else {
+    contentEl.scrollTop = 0;
+  }
 }
 
 function initMermaid() {
@@ -281,10 +369,222 @@ function initMermaid() {
 
   blocks.forEach((block, i) => {
     const pre = block.closest('pre') || block;
-    const container = document.createElement('div');
-    container.className = 'mermaid';
-    container.textContent = block.textContent;
-    pre.replaceWith(container);
+    const mermaidSource = block.textContent;
+
+    // Create diagram container with toolbar
+    const wrapper = document.createElement('div');
+    wrapper.className = 'diagram-container';
+    wrapper.dataset.mermaidSource = mermaidSource;
+
+    // Inline zoom and pan state
+    let inlineZoom = 1;
+    let inlinePanX = 0;
+    let inlinePanY = 0;
+    let inlineDragging = false;
+    let inlineDragStartX = 0;
+    let inlineDragStartY = 0;
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'diagram-toolbar';
+
+    // Zoom out button
+    const zoomOutBtn = document.createElement('button');
+    zoomOutBtn.textContent = '−';
+    zoomOutBtn.title = 'Zoom out';
+
+    // Zoom level display (also acts as reset)
+    const zoomLevel = document.createElement('span');
+    zoomLevel.className = 'diagram-zoom-level';
+    zoomLevel.textContent = '100%';
+    zoomLevel.title = 'Reset zoom';
+
+    // Zoom in button
+    const zoomInBtn = document.createElement('button');
+    zoomInBtn.textContent = '+';
+    zoomInBtn.title = 'Zoom in';
+
+    // Fit-to-width button
+    const fitBtn = document.createElement('button');
+    fitBtn.textContent = 'Fit';
+    fitBtn.title = 'Fit to width';
+
+    function applyInlineTransform() {
+      const svg = wrapper.querySelector('svg');
+      if (!svg) return;
+      svg.style.transform = `scale(${inlineZoom}) translate(${inlinePanX / inlineZoom}px, ${inlinePanY / inlineZoom}px)`;
+      zoomLevel.textContent = Math.round(inlineZoom * 100) + '%';
+    }
+
+    function resetInlineView() {
+      inlineZoom = 1;
+      inlinePanX = 0;
+      inlinePanY = 0;
+      applyInlineTransform();
+    }
+
+    function fitToWidth() {
+      const svg = wrapper.querySelector('svg');
+      if (!svg) return;
+      const containerWidth = wrapper.clientWidth - 20;
+      const svgWidth = svg.getBBox ? svg.getBBox().width : svg.viewBox?.baseVal?.width || svg.clientWidth;
+      if (svgWidth <= 0) return;
+      inlineZoom = Math.min(containerWidth / svgWidth, 3);
+      inlinePanX = 0;
+      inlinePanY = 0;
+      applyInlineTransform();
+    }
+
+    zoomInBtn.addEventListener('click', () => {
+      inlineZoom = Math.min(3, inlineZoom + 0.25);
+      applyInlineTransform();
+    });
+
+    zoomOutBtn.addEventListener('click', () => {
+      inlineZoom = Math.max(0.25, inlineZoom - 0.25);
+      applyInlineTransform();
+    });
+
+    zoomLevel.addEventListener('click', () => {
+      resetInlineView();
+    });
+
+    fitBtn.addEventListener('click', () => {
+      fitToWidth();
+    });
+
+    // Mouse wheel zoom on inline diagram
+    wrapper.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.25 : 0.25;
+      inlineZoom = Math.max(0.25, Math.min(3, inlineZoom + delta));
+      applyInlineTransform();
+    }, { passive: false });
+
+    // Click + drag to pan
+    wrapper.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.diagram-toolbar')) return;
+      inlineDragging = true;
+      inlineDragStartX = e.clientX;
+      inlineDragStartY = e.clientY;
+      wrapper.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!inlineDragging) return;
+      inlinePanX += e.clientX - inlineDragStartX;
+      inlinePanY += e.clientY - inlineDragStartY;
+      inlineDragStartX = e.clientX;
+      inlineDragStartY = e.clientY;
+      applyInlineTransform();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!inlineDragging) return;
+      inlineDragging = false;
+      wrapper.classList.remove('dragging');
+    });
+
+    // Double-click to reset zoom + pan
+    wrapper.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.diagram-toolbar')) return;
+      resetInlineView();
+    });
+
+    // Touch support
+    let inlineTouchStartDist = 0;
+    let inlineTouchStartZoom = 1;
+    let inlineTouchStartX = 0;
+    let inlineTouchStartY = 0;
+    let inlineTouchPanning = false;
+
+    wrapper.addEventListener('touchstart', (e) => {
+      if (e.target.closest('.diagram-toolbar')) return;
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        inlineTouchStartDist = Math.hypot(dx, dy);
+        inlineTouchStartZoom = inlineZoom;
+        inlineTouchStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        inlineTouchStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      } else if (e.touches.length === 1) {
+        inlineTouchPanning = true;
+        inlineTouchStartX = e.touches[0].clientX;
+        inlineTouchStartY = e.touches[0].clientY;
+        wrapper.classList.add('dragging');
+      }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchmove', (e) => {
+      if (e.target.closest('.diagram-toolbar')) return;
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        if (inlineTouchStartDist > 0) {
+          inlineZoom = Math.max(0.25, Math.min(3, inlineTouchStartZoom * (dist / inlineTouchStartDist)));
+        }
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        inlinePanX += cx - inlineTouchStartX;
+        inlinePanY += cy - inlineTouchStartY;
+        inlineTouchStartX = cx;
+        inlineTouchStartY = cy;
+        applyInlineTransform();
+      } else if (e.touches.length === 1 && inlineTouchPanning) {
+        e.preventDefault();
+        inlinePanX += e.touches[0].clientX - inlineTouchStartX;
+        inlinePanY += e.touches[0].clientY - inlineTouchStartY;
+        inlineTouchStartX = e.touches[0].clientX;
+        inlineTouchStartY = e.touches[0].clientY;
+        applyInlineTransform();
+      }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchend', () => {
+      inlineTouchPanning = false;
+      inlineTouchStartDist = 0;
+      wrapper.classList.remove('dragging');
+    });
+
+    // Fullscreen button
+    const fullscreenBtn = document.createElement('button');
+    fullscreenBtn.textContent = '⛶';
+    fullscreenBtn.title = 'View fullscreen';
+    fullscreenBtn.addEventListener('click', () => openDiagramModal(wrapper));
+
+    // Copy button
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy';
+    copyBtn.title = 'Copy Mermaid source';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(mermaidSource).then(() => {
+        copyBtn.textContent = '✓';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+
+    toolbar.appendChild(zoomOutBtn);
+    toolbar.appendChild(zoomLevel);
+    toolbar.appendChild(zoomInBtn);
+    toolbar.appendChild(fitBtn);
+    toolbar.appendChild(fullscreenBtn);
+    toolbar.appendChild(copyBtn);
+
+    const mermaidDiv = document.createElement('div');
+    mermaidDiv.className = 'mermaid';
+    mermaidDiv.textContent = mermaidSource;
+
+    wrapper.appendChild(toolbar);
+    wrapper.appendChild(mermaidDiv);
+    pre.replaceWith(wrapper);
   });
 
   mermaid.run();
@@ -631,12 +931,310 @@ searchClear.addEventListener('click', () => {
   searchInput.focus();
 });
 
-// Ctrl+K / Cmd+K to focus search
+// Ctrl+K / Cmd+K to focus search (auto-expand sidebar if collapsed)
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault();
+    if (appEl.classList.contains('sidebar-collapsed')) {
+      setSidebarCollapsed(false);
+    }
     searchInput.focus();
     searchInput.select();
+  }
+});
+
+// ── Code Block Copy Buttons ──
+
+function initCodeCopyButtons() {
+  const preBlocks = contentInner.querySelectorAll('pre');
+  preBlocks.forEach((pre) => {
+    // Skip if already wrapped
+    if (pre.parentElement?.classList.contains('code-block-wrapper')) return;
+    // Skip mermaid blocks
+    if (pre.querySelector('code.language-mermaid')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-block-wrapper';
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(pre);
+
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      const code = pre.querySelector('code');
+      const text = code ? code.textContent : pre.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+    wrapper.appendChild(btn);
+  });
+}
+
+// ── Heading Anchors (client-side click handling) ──
+
+function initHeadingAnchors() {
+  contentInner.querySelectorAll('.heading-anchor').forEach((anchor) => {
+    anchor.addEventListener('click', (e) => {
+      e.preventDefault();
+      const hash = anchor.getAttribute('href');
+      history.replaceState(null, '', location.pathname + hash);
+      const target = document.getElementById(hash.slice(1));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+}
+
+// ── Table of Contents ──
+
+const tocBtn = document.getElementById('toc-btn');
+const tocPanel = document.getElementById('toc-panel');
+const tocList = document.getElementById('toc-list');
+const tocClose = document.getElementById('toc-close');
+let tocObserver = null;
+
+function initTableOfContents() {
+  // Clean up previous observer
+  if (tocObserver) {
+    tocObserver.disconnect();
+    tocObserver = null;
+  }
+  tocList.innerHTML = '';
+  tocBtn.style.display = 'none';
+  tocPanel.style.display = 'none';
+
+  const headings = contentInner.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]');
+  if (headings.length < 2) return;
+
+  tocBtn.style.display = '';
+
+  headings.forEach((heading) => {
+    const entry = document.createElement('a');
+    entry.className = 'toc-entry';
+    entry.dataset.level = heading.tagName[1];
+    entry.dataset.target = heading.id;
+    entry.textContent = heading.textContent.trim();
+    entry.addEventListener('click', (e) => {
+      e.preventDefault();
+      history.replaceState(null, '', location.pathname + '#' + heading.id);
+      heading.scrollIntoView({ behavior: 'smooth' });
+      tocPanel.style.display = 'none';
+    });
+    tocList.appendChild(entry);
+  });
+
+  // Intersection observer to highlight current heading
+  tocObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          tocList.querySelectorAll('.toc-entry.active').forEach((el) => el.classList.remove('active'));
+          const tocEntry = tocList.querySelector(`.toc-entry[data-target="${entry.target.id}"]`);
+          if (tocEntry) tocEntry.classList.add('active');
+        }
+      });
+    },
+    { rootMargin: '0px 0px -70% 0px', threshold: 0.1 }
+  );
+
+  headings.forEach((heading) => tocObserver.observe(heading));
+}
+
+tocBtn.addEventListener('click', () => {
+  const isVisible = tocPanel.style.display !== 'none';
+  tocPanel.style.display = isVisible ? 'none' : '';
+});
+
+tocClose.addEventListener('click', () => {
+  tocPanel.style.display = 'none';
+});
+
+// Close ToC when clicking outside
+document.addEventListener('click', (e) => {
+  if (tocPanel.style.display !== 'none' && !tocPanel.contains(e.target) && e.target !== tocBtn) {
+    tocPanel.style.display = 'none';
+  }
+});
+
+// ── Diagram Fullscreen Modal ──
+
+const diagramModal = document.getElementById('diagram-modal');
+const diagramModalSvg = document.getElementById('diagram-modal-svg');
+let diagramZoom = 1;
+let diagramPanX = 0;
+let diagramPanY = 0;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+function openDiagramModal(container) {
+  const svgEl = container.querySelector('svg');
+  if (!svgEl) return;
+  diagramModalSvg.innerHTML = svgEl.outerHTML;
+  diagramZoom = 1;
+  diagramPanX = 0;
+  diagramPanY = 0;
+  updateDiagramTransform();
+  diagramModal.style.display = '';
+  document.body.style.overflow = 'hidden';
+
+  // Auto-fit diagram to viewport after render
+  requestAnimationFrame(() => {
+    const modalViewport = diagramModal.querySelector('.diagram-modal-viewport');
+    const svg = diagramModalSvg.querySelector('svg');
+    if (!svg || !modalViewport) return;
+    const vw = modalViewport.clientWidth;
+    const vh = modalViewport.clientHeight;
+    const svgW = svg.getBBox ? svg.getBBox().width : (svg.viewBox?.baseVal?.width || svg.clientWidth);
+    const svgH = svg.getBBox ? svg.getBBox().height : (svg.viewBox?.baseVal?.height || svg.clientHeight);
+    if (svgW <= 0 || svgH <= 0) return;
+    const padding = 40;
+    const scale = Math.min((vw - padding) / svgW, (vh - padding) / svgH, 3);
+    if (scale > 0 && scale !== Infinity) {
+      diagramZoom = scale;
+      diagramPanX = 0;
+      diagramPanY = 0;
+      updateDiagramTransform();
+    }
+  });
+}
+
+function closeDiagramModal() {
+  diagramModal.style.display = 'none';
+  diagramModalSvg.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function updateDiagramTransform() {
+  diagramModalSvg.style.transform = `scale(${diagramZoom}) translate(${diagramPanX}px, ${diagramPanY}px)`;
+}
+
+// Modal close
+diagramModal.querySelector('.diagram-modal-backdrop').addEventListener('click', closeDiagramModal);
+diagramModal.querySelector('.diagram-modal-close').addEventListener('click', closeDiagramModal);
+
+// Zoom buttons
+diagramModal.querySelectorAll('.diagram-zoom-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const action = btn.dataset.action;
+    if (action === 'zoom-in') {
+      diagramZoom = Math.min(5, diagramZoom * 1.3);
+    } else if (action === 'zoom-out') {
+      diagramZoom = Math.max(0.5, diagramZoom / 1.3);
+    } else if (action === 'zoom-reset') {
+      diagramZoom = 1;
+      diagramPanX = 0;
+      diagramPanY = 0;
+    }
+    updateDiagramTransform();
+  });
+});
+
+// Mouse wheel zoom
+diagramModal.querySelector('.diagram-modal-viewport').addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  diagramZoom = Math.max(0.5, Math.min(5, diagramZoom * delta));
+  updateDiagramTransform();
+}, { passive: false });
+
+// Drag to pan
+const viewport = diagramModal.querySelector('.diagram-modal-viewport');
+viewport.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = (e.clientX - dragStartX) / diagramZoom;
+  const dy = (e.clientY - dragStartY) / diagramZoom;
+  diagramPanX += dx;
+  diagramPanY += dy;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  updateDiagramTransform();
+});
+
+window.addEventListener('mouseup', () => {
+  isDragging = false;
+});
+
+// Double-click to reset zoom/pan
+viewport.addEventListener('dblclick', () => {
+  diagramZoom = 1;
+  diagramPanX = 0;
+  diagramPanY = 0;
+  updateDiagramTransform();
+});
+
+// Touch support for modal
+let modalTouchStartDist = 0;
+let modalTouchStartZoom = 1;
+let modalTouchStartX = 0;
+let modalTouchStartY = 0;
+let modalTouchPanning = false;
+
+viewport.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    modalTouchStartDist = Math.hypot(dx, dy);
+    modalTouchStartZoom = diagramZoom;
+    modalTouchStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    modalTouchStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  } else if (e.touches.length === 1) {
+    modalTouchPanning = true;
+    modalTouchStartX = e.touches[0].clientX;
+    modalTouchStartY = e.touches[0].clientY;
+  }
+}, { passive: false });
+
+viewport.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    if (modalTouchStartDist > 0) {
+      diagramZoom = Math.max(0.5, Math.min(5, modalTouchStartZoom * (dist / modalTouchStartDist)));
+    }
+    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    diagramPanX += (cx - modalTouchStartX) / diagramZoom;
+    diagramPanY += (cy - modalTouchStartY) / diagramZoom;
+    modalTouchStartX = cx;
+    modalTouchStartY = cy;
+    updateDiagramTransform();
+  } else if (e.touches.length === 1 && modalTouchPanning) {
+    e.preventDefault();
+    diagramPanX += (e.touches[0].clientX - modalTouchStartX) / diagramZoom;
+    diagramPanY += (e.touches[0].clientY - modalTouchStartY) / diagramZoom;
+    modalTouchStartX = e.touches[0].clientX;
+    modalTouchStartY = e.touches[0].clientY;
+    updateDiagramTransform();
+  }
+}, { passive: false });
+
+viewport.addEventListener('touchend', () => {
+  modalTouchPanning = false;
+  modalTouchStartDist = 0;
+});
+
+// Esc to close modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && diagramModal.style.display !== 'none') {
+    closeDiagramModal();
   }
 });
 
@@ -706,6 +1304,8 @@ function expandToPath(filePath) {
         if (children?.classList.contains('hidden')) {
           item.classList.remove('collapsed');
           children.classList.remove('hidden');
+          const folderIcon = item.querySelector('.tree-folder-icon');
+          if (folderIcon) folderIcon.innerHTML = ICON_FOLDER_OPEN;
         }
       }
     }

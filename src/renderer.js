@@ -149,6 +149,9 @@ export async function renderMarkdown(content, filePath) {
   // For now, leave math as-is — KaTeX CSS + auto-render will handle it client-side
   // The remark-math plugin wraps math in appropriate classes
 
+  // Add heading anchors with slugified IDs
+  html = addHeadingAnchors(html);
+
   // Rewrite relative image URLs to /raw/ paths
   const fileDir = path.posix.dirname(filePath);
   html = html.replace(/<img([^>]*?)src="([^"]*?)"([^>]*?)>/gi, (match, before, src, after) => {
@@ -205,6 +208,50 @@ export async function renderCode(content, filePath) {
     html: `<pre><code>${escapeHtml(content)}</code></pre>`,
     language: 'text',
   };
+}
+
+/**
+ * Slugify heading text for use as an anchor ID.
+ */
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/<[^>]*>/g, '')           // strip HTML tags
+    .replace(/&[^;]+;/g, '')           // strip HTML entities
+    .replace(/[^\w\s-]/g, '')          // remove special chars
+    .replace(/\s+/g, '-')             // spaces → hyphens
+    .replace(/-+/g, '-')              // collapse multiple hyphens
+    .replace(/^-|-$/g, '');           // trim leading/trailing hyphens
+}
+
+/**
+ * Post-process HTML to add anchor IDs and links to headings.
+ * Handles duplicate headings by appending -1, -2, etc.
+ */
+function addHeadingAnchors(html) {
+  const usedSlugs = {};
+  return html.replace(
+    /<(h[1-6])([^>]*)>([\s\S]*?)<\/\1>/gi,
+    (match, tag, attrs, content) => {
+      // Skip if already has an id
+      if (/\bid\s*=/.test(attrs)) return match;
+
+      const textContent = content.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, '');
+      let slug = slugify(textContent);
+      if (!slug) slug = 'heading';
+
+      // Handle duplicates
+      if (usedSlugs[slug] !== undefined) {
+        usedSlugs[slug]++;
+        slug = `${slug}-${usedSlugs[slug]}`;
+      } else {
+        usedSlugs[slug] = 0;
+      }
+
+      return `<${tag}${attrs} id="${slug}">${content}<a class="heading-anchor" href="#${slug}" aria-label="Link to this heading" aria-hidden="true"></a></${tag}>`;
+    }
+  );
 }
 
 function escapeHtml(str) {
