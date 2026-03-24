@@ -999,15 +999,24 @@ pre.shiki {
 .diagram-container {
   position: relative;
   margin-bottom: 16px;
-  overflow: auto;
+  overflow: hidden;
   max-height: 500px;
   border: 1px solid var(--border-light);
   border-radius: 8px;
+  cursor: grab;
+}
+
+.diagram-container.dragging {
+  cursor: grabbing;
 }
 
 .diagram-container .mermaid svg {
   transition: transform 0.15s ease;
-  transform-origin: center top;
+  transform-origin: 0 0;
+}
+
+.diagram-container.dragging .mermaid svg {
+  transition: none;
 }
 
 .diagram-toolbar {

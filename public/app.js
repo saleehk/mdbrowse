@@ -364,8 +364,13 @@ function initMermaid() {
     wrapper.className = 'diagram-container';
     wrapper.dataset.mermaidSource = mermaidSource;
 
-    // Inline zoom state
+    // Inline zoom and pan state
     let inlineZoom = 1;
+    let inlinePanX = 0;
+    let inlinePanY = 0;
+    let inlineDragging = false;
+    let inlineDragStartX = 0;
+    let inlineDragStartY = 0;
 
     const toolbar = document.createElement('div');
     toolbar.className = 'diagram-toolbar';
@@ -386,27 +391,53 @@ function initMermaid() {
     zoomInBtn.textContent = '+';
     zoomInBtn.title = 'Zoom in';
 
-    function applyInlineZoom() {
+    // Fit-to-width button
+    const fitBtn = document.createElement('button');
+    fitBtn.textContent = 'Fit';
+    fitBtn.title = 'Fit to width';
+
+    function applyInlineTransform() {
       const svg = wrapper.querySelector('svg');
       if (!svg) return;
-      svg.style.transform = `scale(${inlineZoom})`;
-      svg.style.transformOrigin = 'center top';
+      svg.style.transform = `scale(${inlineZoom}) translate(${inlinePanX / inlineZoom}px, ${inlinePanY / inlineZoom}px)`;
       zoomLevel.textContent = Math.round(inlineZoom * 100) + '%';
+    }
+
+    function resetInlineView() {
+      inlineZoom = 1;
+      inlinePanX = 0;
+      inlinePanY = 0;
+      applyInlineTransform();
+    }
+
+    function fitToWidth() {
+      const svg = wrapper.querySelector('svg');
+      if (!svg) return;
+      const containerWidth = wrapper.clientWidth - 20;
+      const svgWidth = svg.getBBox ? svg.getBBox().width : svg.viewBox?.baseVal?.width || svg.clientWidth;
+      if (svgWidth <= 0) return;
+      inlineZoom = Math.min(containerWidth / svgWidth, 3);
+      inlinePanX = 0;
+      inlinePanY = 0;
+      applyInlineTransform();
     }
 
     zoomInBtn.addEventListener('click', () => {
       inlineZoom = Math.min(3, inlineZoom + 0.25);
-      applyInlineZoom();
+      applyInlineTransform();
     });
 
     zoomOutBtn.addEventListener('click', () => {
       inlineZoom = Math.max(0.25, inlineZoom - 0.25);
-      applyInlineZoom();
+      applyInlineTransform();
     });
 
     zoomLevel.addEventListener('click', () => {
-      inlineZoom = 1;
-      applyInlineZoom();
+      resetInlineView();
+    });
+
+    fitBtn.addEventListener('click', () => {
+      fitToWidth();
     });
 
     // Mouse wheel zoom on inline diagram
@@ -415,8 +446,97 @@ function initMermaid() {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.25 : 0.25;
       inlineZoom = Math.max(0.25, Math.min(3, inlineZoom + delta));
-      applyInlineZoom();
+      applyInlineTransform();
     }, { passive: false });
+
+    // Click + drag to pan
+    wrapper.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.diagram-toolbar')) return;
+      inlineDragging = true;
+      inlineDragStartX = e.clientX;
+      inlineDragStartY = e.clientY;
+      wrapper.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!inlineDragging) return;
+      inlinePanX += e.clientX - inlineDragStartX;
+      inlinePanY += e.clientY - inlineDragStartY;
+      inlineDragStartX = e.clientX;
+      inlineDragStartY = e.clientY;
+      applyInlineTransform();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!inlineDragging) return;
+      inlineDragging = false;
+      wrapper.classList.remove('dragging');
+    });
+
+    // Double-click to reset zoom + pan
+    wrapper.addEventListener('dblclick', (e) => {
+      if (e.target.closest('.diagram-toolbar')) return;
+      resetInlineView();
+    });
+
+    // Touch support
+    let inlineTouchStartDist = 0;
+    let inlineTouchStartZoom = 1;
+    let inlineTouchStartX = 0;
+    let inlineTouchStartY = 0;
+    let inlineTouchPanning = false;
+
+    wrapper.addEventListener('touchstart', (e) => {
+      if (e.target.closest('.diagram-toolbar')) return;
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        inlineTouchStartDist = Math.hypot(dx, dy);
+        inlineTouchStartZoom = inlineZoom;
+        inlineTouchStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        inlineTouchStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      } else if (e.touches.length === 1) {
+        inlineTouchPanning = true;
+        inlineTouchStartX = e.touches[0].clientX;
+        inlineTouchStartY = e.touches[0].clientY;
+        wrapper.classList.add('dragging');
+      }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchmove', (e) => {
+      if (e.target.closest('.diagram-toolbar')) return;
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        if (inlineTouchStartDist > 0) {
+          inlineZoom = Math.max(0.25, Math.min(3, inlineTouchStartZoom * (dist / inlineTouchStartDist)));
+        }
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        inlinePanX += cx - inlineTouchStartX;
+        inlinePanY += cy - inlineTouchStartY;
+        inlineTouchStartX = cx;
+        inlineTouchStartY = cy;
+        applyInlineTransform();
+      } else if (e.touches.length === 1 && inlineTouchPanning) {
+        e.preventDefault();
+        inlinePanX += e.touches[0].clientX - inlineTouchStartX;
+        inlinePanY += e.touches[0].clientY - inlineTouchStartY;
+        inlineTouchStartX = e.touches[0].clientX;
+        inlineTouchStartY = e.touches[0].clientY;
+        applyInlineTransform();
+      }
+    }, { passive: false });
+
+    wrapper.addEventListener('touchend', () => {
+      inlineTouchPanning = false;
+      inlineTouchStartDist = 0;
+      wrapper.classList.remove('dragging');
+    });
 
     // Fullscreen button
     const fullscreenBtn = document.createElement('button');
@@ -442,6 +562,7 @@ function initMermaid() {
     toolbar.appendChild(zoomOutBtn);
     toolbar.appendChild(zoomLevel);
     toolbar.appendChild(zoomInBtn);
+    toolbar.appendChild(fitBtn);
     toolbar.appendChild(fullscreenBtn);
     toolbar.appendChild(copyBtn);
 
@@ -1022,6 +1143,60 @@ viewport.addEventListener('dblclick', () => {
   diagramPanX = 0;
   diagramPanY = 0;
   updateDiagramTransform();
+});
+
+// Touch support for modal
+let modalTouchStartDist = 0;
+let modalTouchStartZoom = 1;
+let modalTouchStartX = 0;
+let modalTouchStartY = 0;
+let modalTouchPanning = false;
+
+viewport.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    modalTouchStartDist = Math.hypot(dx, dy);
+    modalTouchStartZoom = diagramZoom;
+    modalTouchStartX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    modalTouchStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  } else if (e.touches.length === 1) {
+    modalTouchPanning = true;
+    modalTouchStartX = e.touches[0].clientX;
+    modalTouchStartY = e.touches[0].clientY;
+  }
+}, { passive: false });
+
+viewport.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    if (modalTouchStartDist > 0) {
+      diagramZoom = Math.max(0.5, Math.min(5, modalTouchStartZoom * (dist / modalTouchStartDist)));
+    }
+    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    diagramPanX += (cx - modalTouchStartX) / diagramZoom;
+    diagramPanY += (cy - modalTouchStartY) / diagramZoom;
+    modalTouchStartX = cx;
+    modalTouchStartY = cy;
+    updateDiagramTransform();
+  } else if (e.touches.length === 1 && modalTouchPanning) {
+    e.preventDefault();
+    diagramPanX += (e.touches[0].clientX - modalTouchStartX) / diagramZoom;
+    diagramPanY += (e.touches[0].clientY - modalTouchStartY) / diagramZoom;
+    modalTouchStartX = e.touches[0].clientX;
+    modalTouchStartY = e.touches[0].clientY;
+    updateDiagramTransform();
+  }
+}, { passive: false });
+
+viewport.addEventListener('touchend', () => {
+  modalTouchPanning = false;
+  modalTouchStartDist = 0;
 });
 
 // Esc to close modal
