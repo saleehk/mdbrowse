@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.0](https://github.com/saleehk/mdbrowse/compare/v0.4.3...v0.5.0) (2026-03-24)
+
+
+### Features
+
+* add inline +/- zoom controls on Mermaid diagrams ([03941c7](https://github.com/saleehk/mdbrowse/commit/03941c7ba53c41d9ef69dc4da4764e35661c0944))
+* collapse folders by default + replace emoji with SVG icons in file tree ([24fecb6](https://github.com/saleehk/mdbrowse/commit/24fecb616e89078e0871abce245c55a91b862677))
+* diagram drag-to-pan, fit-to-width, touch gestures ([9cc7011](https://github.com/saleehk/mdbrowse/commit/9cc70116ba177ed27e41a21785358ee99eabc6ce))
+* sidebar toggle, diagram zoom, heading anchors + ToC, code copy button ([362cdfb](https://github.com/saleehk/mdbrowse/commit/362cdfbdad6b9773e4143971d1d5fe4a9cdbc26b))
+* sidebar toggle, diagram zoom/fullscreen, heading anchors + ToC, code copy ([64df297](https://github.com/saleehk/mdbrowse/commit/64df297935a99b11848890057cf94f390ef3a151))
+
+
+### Bug Fixes
+
+* diagram modal — white background, visible toolbar, auto-fit on open ([a723115](https://github.com/saleehk/mdbrowse/commit/a7231159b1452dd6614b259978e632e310a23639))
+* diagram modal background + remove fixed height constraint ([59a996f](https://github.com/saleehk/mdbrowse/commit/59a996f5937ed1e378658ee5e27100aadc60da4c))
+* visible hamburger toggle + full-width content layout ([2c9dda2](https://github.com/saleehk/mdbrowse/commit/2c9dda20774b00938dd8f1a86a9dc9251fb8e955))
+* visible hamburger toggle + full-width content layout ([b87de00](https://github.com/saleehk/mdbrowse/commit/b87de0077fc82a8511fba65d9548f80c24011387))
+
 ## [0.4.3](https://github.com/saleehk/mdbrowse/compare/v0.4.2...v0.4.3) (2026-03-17)
 
 
