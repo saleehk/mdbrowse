@@ -100,11 +100,22 @@ function toggleSidebar(open) {
   sidebarBackdrop.classList.toggle('visible', isOpen);
 }
 
-sidebarToggle.addEventListener('click', () => toggleSidebar());
+sidebarToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (window.innerWidth <= 768) {
+    toggleSidebar();
+  } else {
+    setSidebarCollapsed(!appEl.classList.contains('sidebar-collapsed'));
+  }
+});
 sidebarBackdrop.addEventListener('click', () => toggleSidebar(false));
 
 // Close sidebar when clicking content on mobile
-document.getElementById('content').addEventListener('click', () => toggleSidebar(false));
+document.getElementById('content').addEventListener('click', (e) => {
+  if (window.innerWidth <= 768 && e.target !== sidebarToggle && !sidebarToggle.contains(e.target)) {
+    toggleSidebar(false);
+  }
+});
 
 // ── Sidebar Collapse (desktop) ──
 
@@ -121,9 +132,11 @@ if (localStorage.getItem('mdbrowse-sidebar') === 'collapsed') {
   appEl.classList.add('sidebar-collapsed');
 }
 
-sidebarCollapseBtn.addEventListener('click', () => {
-  setSidebarCollapsed(!appEl.classList.contains('sidebar-collapsed'));
-});
+if (sidebarCollapseBtn) {
+  sidebarCollapseBtn.addEventListener('click', () => {
+    setSidebarCollapsed(!appEl.classList.contains('sidebar-collapsed'));
+  });
+}
 
 // Ctrl+B: toggle sidebar collapse
 document.addEventListener('keydown', (e) => {
