@@ -40,6 +40,10 @@ const themeToggle = document.getElementById('theme-toggle');
 const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebar = document.getElementById('sidebar');
 
+const ICON_HAMBURGER = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+const ICON_ARROW_LEFT = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+const ICON_CLOSE = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
 const searchInput = document.getElementById('search-input');
 const searchClear = document.getElementById('search-clear');
 
@@ -94,10 +98,19 @@ const sidebarBackdrop = document.createElement('div');
 sidebarBackdrop.className = 'sidebar-backdrop';
 document.body.appendChild(sidebarBackdrop);
 
+function updateToggleIcon() {
+  if (window.innerWidth <= 768) {
+    sidebarToggle.innerHTML = sidebar.classList.contains('open') ? ICON_CLOSE : ICON_HAMBURGER;
+  } else {
+    sidebarToggle.innerHTML = appEl.classList.contains('sidebar-collapsed') ? ICON_HAMBURGER : ICON_ARROW_LEFT;
+  }
+}
+
 function toggleSidebar(open) {
   const isOpen = open !== undefined ? open : !sidebar.classList.contains('open');
   sidebar.classList.toggle('open', isOpen);
   sidebarBackdrop.classList.toggle('visible', isOpen);
+  updateToggleIcon();
 }
 
 sidebarToggle.addEventListener('click', (e) => {
@@ -125,12 +138,16 @@ const appEl = document.getElementById('app');
 function setSidebarCollapsed(collapsed) {
   appEl.classList.toggle('sidebar-collapsed', collapsed);
   localStorage.setItem('mdbrowse-sidebar', collapsed ? 'collapsed' : 'expanded');
+  updateToggleIcon();
 }
 
 // Restore sidebar state from localStorage
 if (localStorage.getItem('mdbrowse-sidebar') === 'collapsed') {
   appEl.classList.add('sidebar-collapsed');
 }
+
+updateToggleIcon();
+window.addEventListener('resize', updateToggleIcon);
 
 if (sidebarCollapseBtn) {
   sidebarCollapseBtn.addEventListener('click', () => {
