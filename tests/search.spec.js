@@ -8,7 +8,7 @@ test.describe('Search', () => {
 
   test('type "README" shows results with README.md', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     await page.fill('#search-input', 'README');
     // Wait for debounced search results
@@ -21,7 +21,7 @@ test.describe('Search', () => {
 
   test('type "hello" shows code-sample.js with matching line', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     await page.fill('#search-input', 'hello');
     await page.waitForSelector('.search-results');
@@ -36,7 +36,7 @@ test.describe('Search', () => {
 
   test('click search result navigates to file', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     await page.fill('#search-input', 'README');
     await page.waitForSelector('.search-results');
@@ -49,7 +49,7 @@ test.describe('Search', () => {
 
   test('clear search restores file tree', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     await page.fill('#search-input', 'README');
     await page.waitForSelector('.search-results');
@@ -66,7 +66,7 @@ test.describe('Search', () => {
 
   test('Ctrl+K focuses search input', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     // Click somewhere else first
     await page.locator('#content').click();

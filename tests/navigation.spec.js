@@ -5,7 +5,7 @@ test.describe('Navigation & File Tree', () => {
     // The app auto-navigates to README.md if it exists,
     // so we verify the app loads successfully with content
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     // Sidebar logo is visible
     await expect(page.locator('.logo')).toHaveText('mdbrowse-cli');
@@ -15,7 +15,7 @@ test.describe('Navigation & File Tree', () => {
 
   test('file tree shows expected files', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     const fileNames = await page.locator('.tree-file .tree-name').allTextContents();
     expect(fileNames).toContain('README.md');
@@ -34,7 +34,7 @@ test.describe('Navigation & File Tree', () => {
 
   test('ignored-file.txt is NOT in the tree', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     const fileNames = await page.locator('.tree-file .tree-name').allTextContents();
     expect(fileNames).not.toContain('ignored-file.txt');
@@ -42,7 +42,7 @@ test.describe('Navigation & File Tree', () => {
 
   test('click README.md loads content and updates URL', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     // The app auto-navigates to README.md if it exists, so go to a path without it first
     // Actually, let's just verify README loads correctly
@@ -55,7 +55,7 @@ test.describe('Navigation & File Tree', () => {
 
   test('click nested folder then deep-file.md loads', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     const deepFile = page.locator('.tree-file', { hasText: 'deep-file.md' });
 
@@ -80,7 +80,7 @@ test.describe('Navigation & File Tree', () => {
 
   test('browser back button returns to previous file', async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.tree-file');
+    await page.waitForSelector('.tree-file', { state: 'attached' });
 
     // Navigate to README
     await page.locator('.tree-file', { hasText: 'README.md' }).click();
