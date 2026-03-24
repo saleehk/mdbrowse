@@ -44,6 +44,16 @@ const ICON_HAMBURGER = '<svg viewBox="0 0 24 24" width="20" height="20" fill="no
 const ICON_ARROW_LEFT = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
 const ICON_CLOSE = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
+// Tree SVG icons
+const ICON_CHEVRON = '<svg class="tree-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2l4 4-4 4"/></svg>';
+const ICON_FOLDER_CLOSED = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h4l2 2h6v7H2V4z"/></svg>';
+const ICON_FOLDER_OPEN = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h4l2 2h6v1l-2 6H2V4z"/></svg>';
+const ICON_FILE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h5l4 4v9H4V1z"/><path d="M9 1v4h4"/></svg>';
+const ICON_FILE_MD = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h5l4 4v9H4V1z"/><path d="M9 1v4h4"/><path d="M6 9l1.5-2L9 9" stroke-width="1.2"/></svg>';
+const ICON_FILE_CODE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h5l4 4v9H4V1z"/><path d="M9 1v4h4"/><path d="M6.5 8l-1.5 1.5 1.5 1.5M9.5 8l1.5 1.5-1.5 1.5"/></svg>';
+const ICON_FILE_IMAGE = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="1"/><circle cx="5.5" cy="5.5" r="1"/><path d="M2 11l3-3 2 2 3-3 4 4"/></svg>';
+const ICON_FILE_CONFIG = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1h5l4 4v9H4V1z"/><path d="M9 1v4h4"/><circle cx="8" cy="9.5" r="1.5"/><path d="M8 8V7M8 12v-1"/></svg>';
+
 const searchInput = document.getElementById('search-input');
 const searchClear = document.getElementById('search-clear');
 
@@ -172,18 +182,18 @@ async function fetchTree() {
   renderTree(treeData);
 }
 
+const CODE_EXTS = new Set(['js','ts','mjs','cjs','jsx','tsx','py','rb','go','rs','java','c','cpp','cs','php','swift','kt','sh','bash','zsh','lua','r','scala','hs','ex','exs','zig','html','css']);
+const IMAGE_EXTS = new Set(['png','jpg','jpeg','gif','webp','svg','ico','bmp']);
+const CONFIG_EXTS = new Set(['json','yaml','yml','toml','env','xml','ini','cfg']);
+const MD_EXTS = new Set(['md','mdx']);
+
 function fileIcon(name) {
   const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
-  const icons = {
-    md: '📄', mdx: '📄',
-    js: '📜', ts: '📜', mjs: '📜', cjs: '📜', jsx: '📜', tsx: '📜',
-    py: '🐍', rb: '💎', go: '🔵', rs: '🦀',
-    json: '{}', yaml: '⚙️', yml: '⚙️', toml: '⚙️',
-    html: '🌐', css: '🎨', svg: '🖼️',
-    sh: '⌨️', bash: '⌨️', zsh: '⌨️',
-    png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️', webp: '🖼️',
-  };
-  return icons[ext] || '📄';
+  if (MD_EXTS.has(ext)) return ICON_FILE_MD;
+  if (CODE_EXTS.has(ext)) return ICON_FILE_CODE;
+  if (IMAGE_EXTS.has(ext)) return ICON_FILE_IMAGE;
+  if (CONFIG_EXTS.has(ext)) return ICON_FILE_CONFIG;
+  return ICON_FILE;
 }
 
 function renderTree(nodes, container, depth = 0) {
@@ -198,21 +208,23 @@ function renderTree(nodes, container, depth = 0) {
       dirEl.className = 'tree-dir-group';
 
       const item = document.createElement('div');
-      item.className = 'tree-item tree-dir';
+      item.className = 'tree-item tree-dir collapsed';
       item.style.setProperty('--depth', depth);
       item.innerHTML = `
-        <span class="tree-icon tree-chevron">▾</span>
-        <span class="tree-icon">📁</span>
+        <span class="tree-icon">${ICON_CHEVRON}</span>
+        <span class="tree-icon tree-folder-icon">${ICON_FOLDER_CLOSED}</span>
         <span class="tree-name">${escapeHtml(node.name)}</span>
       `;
 
       const children = document.createElement('div');
-      children.className = 'tree-children';
+      children.className = 'tree-children hidden';
 
       item.addEventListener('click', (e) => {
         e.stopPropagation();
-        item.classList.toggle('collapsed');
+        const isCollapsed = item.classList.toggle('collapsed');
         children.classList.toggle('hidden');
+        const folderIcon = item.querySelector('.tree-folder-icon');
+        if (folderIcon) folderIcon.innerHTML = isCollapsed ? ICON_FOLDER_CLOSED : ICON_FOLDER_OPEN;
       });
 
       dirEl.appendChild(item);
@@ -1292,6 +1304,8 @@ function expandToPath(filePath) {
         if (children?.classList.contains('hidden')) {
           item.classList.remove('collapsed');
           children.classList.remove('hidden');
+          const folderIcon = item.querySelector('.tree-folder-icon');
+          if (folderIcon) folderIcon.innerHTML = ICON_FOLDER_OPEN;
         }
       }
     }
