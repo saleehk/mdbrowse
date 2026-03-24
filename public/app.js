@@ -1073,6 +1073,26 @@ function openDiagramModal(container) {
   updateDiagramTransform();
   diagramModal.style.display = '';
   document.body.style.overflow = 'hidden';
+
+  // Auto-fit diagram to viewport after render
+  requestAnimationFrame(() => {
+    const modalViewport = diagramModal.querySelector('.diagram-modal-viewport');
+    const svg = diagramModalSvg.querySelector('svg');
+    if (!svg || !modalViewport) return;
+    const vw = modalViewport.clientWidth;
+    const vh = modalViewport.clientHeight;
+    const svgW = svg.getBBox ? svg.getBBox().width : (svg.viewBox?.baseVal?.width || svg.clientWidth);
+    const svgH = svg.getBBox ? svg.getBBox().height : (svg.viewBox?.baseVal?.height || svg.clientHeight);
+    if (svgW <= 0 || svgH <= 0) return;
+    const padding = 40;
+    const scale = Math.min((vw - padding) / svgW, (vh - padding) / svgH, 3);
+    if (scale > 0 && scale !== Infinity) {
+      diagramZoom = scale;
+      diagramPanX = 0;
+      diagramPanY = 0;
+      updateDiagramTransform();
+    }
+  });
 }
 
 function closeDiagramModal() {
