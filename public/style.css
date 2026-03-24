@@ -1100,6 +1100,11 @@ pre.shiki {
   position: fixed;
   inset: 0;
   z-index: 100;
+  display: none;
+}
+
+#diagram-modal.active {
+  display: block;
 }
 
 .diagram-modal-backdrop {
