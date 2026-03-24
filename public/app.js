@@ -1080,12 +1080,9 @@ function openDiagramModal(container) {
   if (!svgEl) return;
   diagramModalSvg.innerHTML = svgEl.outerHTML;
 
-  // Ensure the cloned SVG is visible and has dimensions
+  // Fix the cloned SVG so it has explicit pixel dimensions
   const clonedSvg = diagramModalSvg.querySelector('svg');
   if (clonedSvg) {
-    clonedSvg.style.display = 'block';
-    clonedSvg.style.visibility = 'visible';
-    clonedSvg.style.opacity = '1';
     // If SVG has no viewBox, create one from the original's dimensions
     if (!clonedSvg.getAttribute('viewBox')) {
       const origRect = svgEl.getBoundingClientRect();
@@ -1095,6 +1092,15 @@ function openDiagramModal(container) {
         clonedSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
       }
     }
+    // Mermaid sets width="100%" which collapses to 0 in a flex container.
+    // Use the viewBox to set explicit pixel dimensions instead.
+    const vb = clonedSvg.viewBox?.baseVal;
+    if (vb && vb.width > 0 && vb.height > 0) {
+      clonedSvg.setAttribute('width', vb.width);
+      clonedSvg.setAttribute('height', vb.height);
+    }
+    // Clear any inline styles that might constrain dimensions (e.g. max-width from mermaid)
+    clonedSvg.style.cssText = 'display:block;';
   }
 
   diagramZoom = 1;
