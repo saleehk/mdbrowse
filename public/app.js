@@ -428,14 +428,14 @@ function initMermaid() {
       const containerWidth = wrapper.clientWidth - 20;
       const svgWidth = svg.getBBox ? svg.getBBox().width : svg.viewBox?.baseVal?.width || svg.clientWidth;
       if (svgWidth <= 0) return;
-      inlineZoom = Math.min(containerWidth / svgWidth, 3);
+      inlineZoom = Math.min(containerWidth / svgWidth, 10);
       inlinePanX = 0;
       inlinePanY = 0;
       applyInlineTransform();
     }
 
     zoomInBtn.addEventListener('click', () => {
-      inlineZoom = Math.min(3, inlineZoom + 0.25);
+      inlineZoom = Math.min(10, inlineZoom + 0.25);
       applyInlineTransform();
     });
 
@@ -457,7 +457,7 @@ function initMermaid() {
       if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.25 : 0.25;
-      inlineZoom = Math.max(0.25, Math.min(3, inlineZoom + delta));
+      inlineZoom = Math.max(0.25, Math.min(10, inlineZoom + delta));
       applyInlineTransform();
     }, { passive: false });
 
@@ -1086,24 +1086,52 @@ function openDiagramModal(container) {
   diagramModal.style.display = '';
   document.body.style.overflow = 'hidden';
 
-  // Auto-fit diagram to viewport after render
+  // Auto-fit diagram to viewport — double rAF so SVG is fully laid out
   requestAnimationFrame(() => {
-    const modalViewport = diagramModal.querySelector('.diagram-modal-viewport');
-    const svg = diagramModalSvg.querySelector('svg');
-    if (!svg || !modalViewport) return;
-    const vw = modalViewport.clientWidth;
-    const vh = modalViewport.clientHeight;
-    const svgW = svg.getBBox ? svg.getBBox().width : (svg.viewBox?.baseVal?.width || svg.clientWidth);
-    const svgH = svg.getBBox ? svg.getBBox().height : (svg.viewBox?.baseVal?.height || svg.clientHeight);
-    if (svgW <= 0 || svgH <= 0) return;
-    const padding = 40;
-    const scale = Math.min((vw - padding) / svgW, (vh - padding) / svgH, 3);
-    if (scale > 0 && scale !== Infinity) {
-      diagramZoom = scale;
-      diagramPanX = 0;
-      diagramPanY = 0;
-      updateDiagramTransform();
-    }
+    requestAnimationFrame(() => {
+      const modalViewport = diagramModal.querySelector('.diagram-modal-viewport');
+      const svg = diagramModalSvg.querySelector('svg');
+      if (!svg || !modalViewport) return;
+
+      const viewportRect = modalViewport.getBoundingClientRect();
+      const svgRect = svg.getBoundingClientRect();
+
+      // Prefer explicit width/height attributes, fall back to viewBox, then bounding rect
+      let svgW = svg.getAttribute('width') ? parseFloat(svg.getAttribute('width')) : 0;
+      let svgH = svg.getAttribute('height') ? parseFloat(svg.getAttribute('height')) : 0;
+      if (!svgW || !svgH) {
+        if (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) {
+          svgW = svgW || svg.viewBox.baseVal.width;
+          svgH = svgH || svg.viewBox.baseVal.height;
+        } else {
+          svgW = svgW || svgRect.width;
+          svgH = svgH || svgRect.height;
+        }
+      }
+      if (svgW <= 0 || svgH <= 0) return;
+
+      const padding = 40;
+      const vw = viewportRect.width;
+      const vh = viewportRect.height;
+
+      // Smart fit: prioritize the dimension that makes content most readable
+      let scale;
+      if (svgW / svgH > vw / vh) {
+        // Wide diagram: fit to width
+        scale = (vw - padding * 2) / svgW;
+      } else {
+        // Tall diagram: fit to height
+        scale = (vh - padding * 2) / svgH;
+      }
+      scale = Math.min(scale, 2); // Don't upscale beyond 2x
+
+      if (scale > 0 && scale !== Infinity) {
+        diagramZoom = Math.max(scale, 0.1);
+        diagramPanX = 0;
+        diagramPanY = 0;
+        updateDiagramTransform();
+      }
+    });
   });
 }
 
@@ -1126,9 +1154,9 @@ diagramModal.querySelectorAll('.diagram-zoom-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     const action = btn.dataset.action;
     if (action === 'zoom-in') {
-      diagramZoom = Math.min(5, diagramZoom * 1.3);
+      diagramZoom = Math.min(20, diagramZoom * 1.3);
     } else if (action === 'zoom-out') {
-      diagramZoom = Math.max(0.5, diagramZoom / 1.3);
+      diagramZoom = Math.max(0.1, diagramZoom / 1.3);
     } else if (action === 'zoom-reset') {
       diagramZoom = 1;
       diagramPanX = 0;
@@ -1142,7 +1170,7 @@ diagramModal.querySelectorAll('.diagram-zoom-btn').forEach((btn) => {
 diagramModal.querySelector('.diagram-modal-viewport').addEventListener('wheel', (e) => {
   e.preventDefault();
   const delta = e.deltaY > 0 ? 0.9 : 1.1;
-  diagramZoom = Math.max(0.5, Math.min(5, diagramZoom * delta));
+  diagramZoom = Math.max(0.1, Math.min(20, diagramZoom * delta));
   updateDiagramTransform();
 }, { passive: false });
 
@@ -1207,7 +1235,7 @@ viewport.addEventListener('touchmove', (e) => {
     const dy = e.touches[0].clientY - e.touches[1].clientY;
     const dist = Math.hypot(dx, dy);
     if (modalTouchStartDist > 0) {
-      diagramZoom = Math.max(0.5, Math.min(5, modalTouchStartZoom * (dist / modalTouchStartDist)));
+      diagramZoom = Math.max(0.1, Math.min(20, modalTouchStartZoom * (dist / modalTouchStartDist)));
     }
     const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
     const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
