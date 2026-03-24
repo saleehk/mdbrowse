@@ -1000,7 +1000,6 @@ pre.shiki {
   position: relative;
   margin-bottom: 16px;
   overflow: hidden;
-  max-height: 500px;
   border: 1px solid var(--border-light);
   border-radius: 8px;
   cursor: grab;
@@ -1105,6 +1104,7 @@ pre.shiki {
   inset: 0;
   display: flex;
   flex-direction: column;
+  background: var(--bg-primary, #fff);
 }
 
 .diagram-modal-toolbar {
@@ -1142,6 +1142,7 @@ pre.shiki {
   align-items: center;
   justify-content: center;
   cursor: grab;
+  background: var(--bg-primary, #1a1a2e);
 }
 
 .diagram-modal-viewport:active {
