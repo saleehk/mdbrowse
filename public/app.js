@@ -1079,11 +1079,29 @@ function openDiagramModal(container) {
   const svgEl = container.querySelector('svg');
   if (!svgEl) return;
   diagramModalSvg.innerHTML = svgEl.outerHTML;
+
+  // Ensure the cloned SVG is visible and has dimensions
+  const clonedSvg = diagramModalSvg.querySelector('svg');
+  if (clonedSvg) {
+    clonedSvg.style.display = 'block';
+    clonedSvg.style.visibility = 'visible';
+    clonedSvg.style.opacity = '1';
+    // If SVG has no viewBox, create one from the original's dimensions
+    if (!clonedSvg.getAttribute('viewBox')) {
+      const origRect = svgEl.getBoundingClientRect();
+      const w = parseFloat(svgEl.getAttribute('width')) || origRect.width;
+      const h = parseFloat(svgEl.getAttribute('height')) || origRect.height;
+      if (w > 0 && h > 0) {
+        clonedSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      }
+    }
+  }
+
   diagramZoom = 1;
   diagramPanX = 0;
   diagramPanY = 0;
   updateDiagramTransform();
-  diagramModal.style.display = '';
+  diagramModal.classList.add('active');
   document.body.style.overflow = 'hidden';
 
   // Auto-fit diagram to viewport — double rAF so SVG is fully laid out
@@ -1096,19 +1114,32 @@ function openDiagramModal(container) {
       const viewportRect = modalViewport.getBoundingClientRect();
       const svgRect = svg.getBoundingClientRect();
 
-      // Prefer explicit width/height attributes, fall back to viewBox, then bounding rect
-      let svgW = svg.getAttribute('width') ? parseFloat(svg.getAttribute('width')) : 0;
-      let svgH = svg.getAttribute('height') ? parseFloat(svg.getAttribute('height')) : 0;
-      if (!svgW || !svgH) {
-        if (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) {
-          svgW = svgW || svg.viewBox.baseVal.width;
-          svgH = svgH || svg.viewBox.baseVal.height;
-        } else {
-          svgW = svgW || svgRect.width;
-          svgH = svgH || svgRect.height;
-        }
+      // Prefer viewBox (most reliable), then explicit attributes, then bounding rect
+      let svgW = 0;
+      let svgH = 0;
+      if (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) {
+        svgW = svg.viewBox.baseVal.width;
+        svgH = svg.viewBox.baseVal.height;
       }
-      if (svgW <= 0 || svgH <= 0) return;
+      if (!svgW || !svgH) {
+        svgW = svgW || (svg.getAttribute('width') ? parseFloat(svg.getAttribute('width')) : 0);
+        svgH = svgH || (svg.getAttribute('height') ? parseFloat(svg.getAttribute('height')) : 0);
+      }
+      if (!svgW || !svgH) {
+        svgW = svgW || svgRect.width;
+        svgH = svgH || svgRect.height;
+      }
+      // Fallback: use original SVG's bounding rect
+      if (svgW <= 0 || svgH <= 0) {
+        const origRect = svgEl.getBoundingClientRect();
+        svgW = origRect.width;
+        svgH = origRect.height;
+      }
+      if (svgW <= 0 || svgH <= 0) {
+        diagramZoom = 1;
+        updateDiagramTransform();
+        return;
+      }
 
       const padding = 40;
       const vw = viewportRect.width;
@@ -1136,7 +1167,7 @@ function openDiagramModal(container) {
 }
 
 function closeDiagramModal() {
-  diagramModal.style.display = 'none';
+  diagramModal.classList.remove('active');
   diagramModalSvg.innerHTML = '';
   document.body.style.overflow = '';
 }
@@ -1261,7 +1292,7 @@ viewport.addEventListener('touchend', () => {
 
 // Esc to close modal
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && diagramModal.style.display !== 'none') {
+  if (e.key === 'Escape' && diagramModal.classList.contains('active')) {
     closeDiagramModal();
   }
 });
