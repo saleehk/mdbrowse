@@ -1033,17 +1033,29 @@ pre.shiki {
 .diagram-container {
   position: relative;
   margin-bottom: 16px;
+  overflow: auto;
+  max-height: 500px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+
+.diagram-container .mermaid svg {
+  transition: transform 0.15s ease;
+  transform-origin: center top;
 }
 
 .diagram-toolbar {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  position: sticky;
+  top: 0;
+  float: right;
   display: flex;
   gap: 4px;
   opacity: 0;
   transition: opacity 0.15s ease;
   z-index: 2;
+  padding: 8px;
+  background: linear-gradient(135deg, transparent 0%, var(--bg-secondary) 30%);
+  border-radius: 0 8px 0 8px;
 }
 
 .diagram-container:hover .diagram-toolbar {
@@ -1061,6 +1073,8 @@ pre.shiki {
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
   line-height: 1.4;
+  min-width: 28px;
+  text-align: center;
 }
 
 .diagram-toolbar button:hover {
@@ -1073,6 +1087,29 @@ pre.shiki {
   background: #1a7f37;
   color: #fff;
   border-color: #1a7f37;
+}
+
+.diagram-zoom-level {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  color: var(--text-muted);
+  min-width: 40px;
+  text-align: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-tertiary);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.diagram-zoom-level:hover {
+  background: var(--bg-secondary);
+  color: var(--text);
+  border-color: var(--text-muted);
 }
 
 /* ── Diagram Modal ── */

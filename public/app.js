@@ -334,20 +334,73 @@ function initMermaid() {
     wrapper.className = 'diagram-container';
     wrapper.dataset.mermaidSource = mermaidSource;
 
+    // Inline zoom state
+    let inlineZoom = 1;
+
     const toolbar = document.createElement('div');
     toolbar.className = 'diagram-toolbar';
 
+    // Zoom out button
+    const zoomOutBtn = document.createElement('button');
+    zoomOutBtn.textContent = '−';
+    zoomOutBtn.title = 'Zoom out';
+
+    // Zoom level display (also acts as reset)
+    const zoomLevel = document.createElement('span');
+    zoomLevel.className = 'diagram-zoom-level';
+    zoomLevel.textContent = '100%';
+    zoomLevel.title = 'Reset zoom';
+
+    // Zoom in button
+    const zoomInBtn = document.createElement('button');
+    zoomInBtn.textContent = '+';
+    zoomInBtn.title = 'Zoom in';
+
+    function applyInlineZoom() {
+      const svg = wrapper.querySelector('svg');
+      if (!svg) return;
+      svg.style.transform = `scale(${inlineZoom})`;
+      svg.style.transformOrigin = 'center top';
+      zoomLevel.textContent = Math.round(inlineZoom * 100) + '%';
+    }
+
+    zoomInBtn.addEventListener('click', () => {
+      inlineZoom = Math.min(3, inlineZoom + 0.25);
+      applyInlineZoom();
+    });
+
+    zoomOutBtn.addEventListener('click', () => {
+      inlineZoom = Math.max(0.25, inlineZoom - 0.25);
+      applyInlineZoom();
+    });
+
+    zoomLevel.addEventListener('click', () => {
+      inlineZoom = 1;
+      applyInlineZoom();
+    });
+
+    // Mouse wheel zoom on inline diagram
+    wrapper.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.25 : 0.25;
+      inlineZoom = Math.max(0.25, Math.min(3, inlineZoom + delta));
+      applyInlineZoom();
+    }, { passive: false });
+
+    // Fullscreen button
     const fullscreenBtn = document.createElement('button');
-    fullscreenBtn.textContent = '⛶ Fullscreen';
+    fullscreenBtn.textContent = '⛶';
     fullscreenBtn.title = 'View fullscreen';
     fullscreenBtn.addEventListener('click', () => openDiagramModal(wrapper));
 
+    // Copy button
     const copyBtn = document.createElement('button');
     copyBtn.textContent = 'Copy';
     copyBtn.title = 'Copy Mermaid source';
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(mermaidSource).then(() => {
-        copyBtn.textContent = 'Copied!';
+        copyBtn.textContent = '✓';
         copyBtn.classList.add('copied');
         setTimeout(() => {
           copyBtn.textContent = 'Copy';
@@ -356,6 +409,9 @@ function initMermaid() {
       });
     });
 
+    toolbar.appendChild(zoomOutBtn);
+    toolbar.appendChild(zoomLevel);
+    toolbar.appendChild(zoomInBtn);
     toolbar.appendChild(fullscreenBtn);
     toolbar.appendChild(copyBtn);
 
