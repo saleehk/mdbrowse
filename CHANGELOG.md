@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/saleehk/mdbrowse/compare/v0.5.1...v0.5.2) (2026-03-24)
+
+
+### Bug Fixes
+
+* use absolute GitHub URLs for README images (npm compatibility) ([#17](https://github.com/saleehk/mdbrowse/issues/17)) ([e0dc258](https://github.com/saleehk/mdbrowse/commit/e0dc258c20e1905d95bdbb79697042fad6f89c5e))
+
 ## [0.5.1](https://github.com/saleehk/mdbrowse/compare/v0.5.0...v0.5.1) (2026-03-24)
 
 
